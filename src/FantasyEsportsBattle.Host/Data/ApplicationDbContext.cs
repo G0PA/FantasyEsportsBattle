@@ -5,11 +5,18 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FantasyEsportsBattle.Host.Data.Models;
+using FantasyEsportsBattle.Host.Data.Models.Tournament;
 
 namespace FantasyEsportsBattle.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
+        public DbSet<Tournament> Tournaments { get; set; }
+        public DbSet<Image> Images { get; set; }
+        public DbSet<Competition> Competitions { get; set; }
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<TournamentPlayer> TournamentPlayers { get; set; }
+        public DbSet<TournamentPlayerStats> TournamentPlayerStatuses { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -18,9 +25,11 @@ namespace FantasyEsportsBattle.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            // Customize the ASP.NET Core Identity model and override the defaults if needed.
-            // For example, you can rename the ASP.NET Core Identity table names and more.
-            // Add your customizations after calling base.OnModelCreating(builder);
+
+            builder.Entity<Team>()
+                .HasOne(t => t.Competition)
+                .WithMany(c => c.Teams);
+
         }
     }
 }
