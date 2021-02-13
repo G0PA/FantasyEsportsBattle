@@ -9,8 +9,9 @@ namespace FantasyEsportsBattle.Host.Data.Models.Tournament
     {
         public int Id { get; set; }
         public string Nickname { get; set; }
-        public int TeamId { get; set; }
+        public int DisplayImage { get; set; }
         public Team Team { get; set; }
+        public int ImageId { get; set; }
         public TournamentPlayerStats Stats { get; set; }
     }
 }

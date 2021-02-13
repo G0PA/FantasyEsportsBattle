@@ -25,12 +25,8 @@ namespace FantasyEsportsBattle.InfoTracker
         {
             GamesOfLegends gol = new GamesOfLegends();
 
-            while (true)
-            {
-                gol.GetLinks(dbContext);
-
-                Thread.Sleep(_workerBreakTime);
-            }
+            gol.ParseWebsiteOnInterval(dbContext, _workerBreakTime);
         }
+
     }
 }

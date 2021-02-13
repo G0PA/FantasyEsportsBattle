@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FantasyEsportsBattle.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210130185908_InitialMigration")]
+    [Migration("20210213183254_InitialMigration")]
     partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -84,6 +84,166 @@ namespace FantasyEsportsBattle.Data.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Image", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ImageTitle")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Images");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<int>("DisplayImage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Region")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Competitions");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<float>("AverageGameTime")
+                        .HasColumnType("real");
+
+                    b.Property<int>("CompetitionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DisplayImage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Losses")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Region")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalGames")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Winrate")
+                        .HasColumnType("real");
+
+                    b.Property<int>("Wins")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId");
+
+                    b.ToTable("Teams");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DisplayImage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxParticipants")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tournaments");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<int>("DisplayImage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ImageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nickname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("TournamentPlayers");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayerStats", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<int>("TournamentPlayerId")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Winrate")
+                        .HasColumnType("real");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentPlayerId")
+                        .IsUnique();
+
+                    b.ToTable("TournamentPlayerStatuses");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -217,6 +377,37 @@ namespace FantasyEsportsBattle.Data.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", "Competition")
+                        .WithMany("Teams")
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", "Team")
+                        .WithMany("Players")
+                        .HasForeignKey("TeamId");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayerStats", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", "TournamentPlayer")
+                        .WithOne("Stats")
+                        .HasForeignKey("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayerStats", "TournamentPlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TournamentPlayer");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -266,6 +457,21 @@ namespace FantasyEsportsBattle.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
+                {
+                    b.Navigation("Teams");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
+                {
+                    b.Navigation("Players");
+                });
+
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
+                {
+                    b.Navigation("Stats");
                 });
 #pragma warning restore 612, 618
         }

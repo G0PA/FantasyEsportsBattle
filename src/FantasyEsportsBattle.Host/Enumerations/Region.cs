@@ -28,5 +28,6 @@ namespace FantasyEsportsBattle.Host.Enumerations
         LT = 19,
         IT = 20,
         NL = 21,
+        CIS = 22,
     }
 }

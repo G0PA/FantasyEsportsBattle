@@ -2,7 +2,7 @@
 
 namespace FantasyEsportsBattle.Data.Migrations
 {
-    public partial class first : Migration
+    public partial class Test2 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

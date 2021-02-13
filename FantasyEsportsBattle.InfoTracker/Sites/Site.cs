@@ -9,7 +9,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     public abstract class Site
     {
         protected HttpClient Client;
-        public abstract void GetLinks(ApplicationDbContext dbContext);
+        public abstract void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval);
 
         public Site()
         {
