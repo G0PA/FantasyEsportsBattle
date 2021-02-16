@@ -7,11 +7,11 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace FantasyEsportsBattle.Data.Migrations
+namespace FantasyEsportsBattle.Host.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210213183851_Test2")]
-    partial class Test2
+    [Migration("20210213190954_InitialMigration")]
+    partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -380,7 +380,7 @@ namespace FantasyEsportsBattle.Data.Migrations
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
                 {
                     b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", "Competition")
-                        .WithMany("Teams")
+                        .WithMany()
                         .HasForeignKey("CompetitionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -457,11 +457,6 @@ namespace FantasyEsportsBattle.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
-                {
-                    b.Navigation("Teams");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>

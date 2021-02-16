@@ -1,16 +1,46 @@
 ﻿@page
+@using FantasyEsportsBattle.Host.Areas.Identity.Pages.Tournaments
 @model IndexModel
 @{
     ViewData["Title"] = "Tournaments";
 }
-
 <h4>@ViewData["Title"]</h4>
 <div class="row">
-    <div class="col-md-6">
-        <h1>All Tournaments</h1>
+    <td><button class="btn btn-sm btn-dark details" data-id="tournament" data-toggle="modal" data-target="#tournament-modal">Create Tournament</button></td>
+    <div class="modal fade" tabindex="-1" role="dialog" id="tournament-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Tournament</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div>
+                        <h3>Choose between Competitions:</h3>
+                        @foreach (var competition in @Model.Competitions)
+                        {
+                            <h5>
+                                @competition
+                            <input type="checkbox">
+                        </h5>
+                    }
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+<h1>All Tournaments</h1>
 
 @section Scripts {
+    <script>
+        $(function () {
+            $('button.details').on('click', function () {
+                $('.modal-body').load('tournament');
+            });
+        })
+    </script>
     <partial name="_ValidationScriptsPartial" />
 }

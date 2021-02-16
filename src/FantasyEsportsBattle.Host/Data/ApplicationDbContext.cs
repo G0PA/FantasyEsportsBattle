@@ -22,17 +22,17 @@ namespace FantasyEsportsBattle.Data
         {
         }
 
-        //protected override void OnModelCreating(ModelBuilder builder)
-        //{
-        //    base.OnModelCreating(builder);
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
 
-        //    builder.Entity<TournamentPlayer>()
-        //        .HasOne(t => t.Team)
-        //        .WithMany(t => t.Players);
+            builder.Entity<TournamentPlayer>()
+                .HasOne(t => t.Team)
+                .WithMany(t => t.Players);
 
-        //    builder.Entity<Team>()
-        //        .HasOne(t => t.Competition)
-        //        .WithMany(c => c.Teams);
-        //}
+            builder.Entity<Team>()
+                .HasOne(t => t.Competition)
+                .WithMany(c => c.Teams);
+        }
     }
 }

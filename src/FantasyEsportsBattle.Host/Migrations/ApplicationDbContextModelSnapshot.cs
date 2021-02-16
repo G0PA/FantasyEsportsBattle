@@ -4,16 +4,14 @@ using FantasyEsportsBattle.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace FantasyEsportsBattle.Data.Migrations
+namespace FantasyEsportsBattle.Host.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20210213183254_InitialMigration")]
-    partial class InitialMigration
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -209,13 +207,10 @@ namespace FantasyEsportsBattle.Data.Migrations
                     b.Property<int>("DisplayImage")
                         .HasColumnType("int");
 
-                    b.Property<int>("ImageId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Nickname")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("TeamId")
+                    b.Property<int>("TeamId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -392,7 +387,9 @@ namespace FantasyEsportsBattle.Data.Migrations
                 {
                     b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", "Team")
                         .WithMany("Players")
-                        .HasForeignKey("TeamId");
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Team");
                 });
@@ -400,7 +397,7 @@ namespace FantasyEsportsBattle.Data.Migrations
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayerStats", b =>
                 {
                     b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", "TournamentPlayer")
-                        .WithOne("Stats")
+                        .WithOne("TournamentPlayerStats")
                         .HasForeignKey("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayerStats", "TournamentPlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -471,7 +468,7 @@ namespace FantasyEsportsBattle.Data.Migrations
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
                 {
-                    b.Navigation("Stats");
+                    b.Navigation("TournamentPlayerStats");
                 });
 #pragma warning restore 612, 618
         }

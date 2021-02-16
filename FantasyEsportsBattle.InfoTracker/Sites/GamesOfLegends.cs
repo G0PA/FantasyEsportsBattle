@@ -27,7 +27,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private readonly string _tournamentStatsLink = "https://gol.gg/tournament/tournament-stats/";
         private readonly string _leagueIconLink = "https://gol.gg/_img/leagues_icon/";
         private readonly string _teamIconLink = "https://gol.gg/_img/teams_icon/{0}-2021.png";
-        private const int DefaultImageId = 31;
+        private const int DefaultImageId = 1;
         private ApplicationDbContext _dbContext;
         private const string SeasonSuffix = "S11";
 
@@ -42,24 +42,43 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             {
                 var competitions = GetCompetitions();
 
+                if (competitions == null)
+                {
+                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                    continue;
+                }
+
+                _dbContext.SaveChanges();
+
                 foreach (var competition in competitions)
                 {
                     var teams = GetTeamsForCompetition(competition);
                 }
 
+                _dbContext.SaveChanges();
+
+                UpdateDisplayImageIds();
+
+                _dbContext.SaveChanges();
+
                 Thread.Sleep(interval);
             }
+        }
 
-            //dbContext.SaveChanges();
+        private void UpdateDisplayImageIds()
+        {
+            foreach (var competition in _dbContext.Competitions.ToList())
+            {
+                var imgId = FindRelevantImageId(competition.Name);
 
-            //foreach (var competition in competitions)
-            //{
-            //    competition.ImageId = FindRelevantImageId(competition.Name);
-            //}
+                competition.DisplayImage = imgId;
+            }
 
-            //dbContext.AddRange(competitions);
-
-            //dbContext.SaveChanges();
+            foreach (var team in _dbContext.Teams.ToList())
+            {
+                var imgId = FindRelevantImageId(team.Name);
+                team.DisplayImage = imgId;
+            }
         }
 
         private List<Team> GetTeamsForCompetition(Competition competition)
@@ -67,99 +86,157 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             List<Team> teams = new List<Team>();
 
-            var tournamentRankings =
-                Client.GetStringAsync(
-                    $"{_tournamentRankingLink}{BuildUrlFromName(competition.Name)}/").Result;
-
-            HtmlDocument teamsDoc = new HtmlDocument();
-
-            teamsDoc.LoadHtml(tournamentRankings);
-
-            var teamLinks = teamsDoc.DocumentNode.SelectSingleNode("//table").SelectNodes(".//tbody//@href").Select(n => n.Attributes["href"].Value.Trim().Replace("..", "https://gol.gg"));
-
-            foreach (var teamLink in teamLinks)
+            try
             {
-                try
+                var tournamentRankings =
+                    Client.GetStringAsync(
+                        $"{_tournamentRankingLink}{BuildUrlFromName(competition.Name)}/").Result;
+
+                HtmlDocument teamsDoc = new HtmlDocument();
+
+                teamsDoc.LoadHtml(tournamentRankings);
+
+                var teamLinks = teamsDoc.DocumentNode.SelectSingleNode("//table").SelectNodes(".//tbody//@href")
+                    .Select(n => n.Attributes["href"].Value.Trim().Replace("..", "https://gol.gg"));
+
+                foreach (var teamLink in teamLinks)
                 {
-                    var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Competition.Name == competition.Name);
-
-                    Team team = teamFromDb == null ? new Team() : teamFromDb;
-
-                    var doc = new HtmlDocument();
-
-                    var content = Client.GetStringAsync(teamLink).Result;
-
-                    doc.LoadHtml(content);
-
-                    var teamName = doc.DocumentNode.SelectSingleNode("//h1").InnerText;
-
-                    team.Name = teamName;
-
-                    team.CompetitionId = competition.Id;
-
-                    AddImageToDb(string.Format(_teamIconLink, teamName.ToLowerInvariant()), teamName);
-
-                    var tables = doc.DocumentNode.SelectNodes("//table[contains(@class,'table_list')]");
-
-                    foreach (var table in tables)
+                    try
                     {
-                        if (table.InnerText.Contains($"{teamName} - {SeasonSuffix}"))
+                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Competition.Name == competition.Name);
+
+                        Team team = teamFromDb == null ? new Team() : teamFromDb;
+
+                        var doc = new HtmlDocument();
+
+                        var content = Client.GetStringAsync(teamLink).Result;
+
+                        doc.LoadHtml(content);
+
+                        var teamName = doc.DocumentNode.SelectSingleNode("//h1").InnerText;
+
+                        team.Name = teamName;
+
+                        team.CompetitionId = competition.Id;
+
+                        AddImageToDb(string.Format(_teamIconLink, teamName.ToLowerInvariant()), teamName);
+
+                        var tables = doc.DocumentNode.SelectNodes("//table[contains(@class,'table_list')]");
+
+                        foreach (var table in tables)
                         {
-                            var columns = table.SelectNodes(".//td");
-
-                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            if (table.InnerText.Contains($"{teamName} - {SeasonSuffix}"))
                             {
-                                if (columns[i].InnerText.Contains("Region") && columns[i].InnerText != "-")
-                                {
-                                    team.Region = (Region) Enum.Parse(typeof(Region),columns[i + 1].InnerText,true);
+                                var columns = table.SelectNodes(".//td");
 
-                                    continue;
+                                for (int i = 0; i < columns.Count - 1; i += 2)
+                                {
+                                    if (columns[i].InnerText.Contains("Region") && columns[i].InnerText != "-")
+                                    {
+                                        team.Region = (Region) Enum.Parse(typeof(Region), columns[i + 1].InnerText,
+                                            true);
+
+                                        continue;
+                                    }
+
+                                    if (columns[i].InnerText.Contains("Win Rate") && columns[i].InnerText != "-")
+                                    {
+                                        var winrateArr = columns[i + 1].InnerText.Replace("W", "").Replace("L", "")
+                                            .Split(" - ");
+                                        var wins = int.Parse(winrateArr[0].Trim());
+                                        var losses = int.Parse(winrateArr[1].Trim());
+                                        var totalGames = wins + losses;
+                                        var winrate = (int) (((double) wins / (double) totalGames) * 100);
+                                        team.Winrate = winrate;
+                                        team.Wins = wins;
+                                        team.Losses = losses;
+
+                                        continue;
+                                    }
+
+                                    if (columns[i].InnerText.Contains("Average game duration") &&
+                                        columns[i].InnerText != "-")
+                                    {
+                                        var timeString = columns[i + 1].InnerText.Replace(":", ",");
+                                        var time = float.Parse(timeString);
+                                        team.AverageGameTime = (float) time;
+                                        continue;
+                                    }
                                 }
 
-                                if (columns[i].InnerText.Contains("Win Rate") && columns[i].InnerText != "-")
+                                if (table.InnerText.Contains("Player"))
                                 {
-                                    var winrateArr = columns[i + 1].InnerText.Replace("W", "").Replace("L", "")
-                                        .Split(" - ");
-                                    var wins = int.Parse(winrateArr[0].Trim());
-                                    var losses = int.Parse(winrateArr[1].Trim());
-                                    var totalGames = wins + losses;
-                                    var winrate = (int) (((double) wins / (double) totalGames) * 100);
-                                    team.Winrate = winrate;
-                                    team.Wins = wins;
-                                    team.Losses = losses;
+                                    var linkNodes = table.SelectNodes(".//a");
+                                    foreach (var node in linkNodes)
+                                    {
+                                        if (node.OuterHtml.Contains("player-stats"))
+                                        {
+                                            var uriString = node.Attributes["href"].Value;
+                                            uriString = uriString.Substring(2);
+                                            var uri = new Uri("http://gol.gg" + uriString);
 
-                                    continue;
+                                            UpdatePlayerForTeam(team, uri);
+                                        }
+                                    }
                                 }
 
-                                if (columns[i].InnerText.Contains("Average game duration") &&
-                                    columns[i].InnerText != "-")
-                                {
-                                    var timeString = columns[i + 1].InnerText.Replace(":", ",");
-                                    var time = float.Parse(timeString);
-                                    team.AverageGameTime = (float) time;
-                                    continue;
-                                }
+                                continue;
                             }
-
-                            continue;
                         }
-                    }
 
-                    if (teamFromDb == null)
+                        if (teamFromDb == null)
+                        {
+                            _dbContext.Teams.Add(team);
+                        }
+
+                        teams.Add(team);
+
+                    }
+                    catch (Exception ex)
                     {
-                        //_dbContext.Teams.Add(team);
+                        //error parsing team
                     }
+                }
+            }
+            catch (Exception ex)
+            {
 
-                    teams.Add(team);
-                    
-                }
-                catch (Exception ex)
-                {
-                    //error parsing team
-                }
             }
 
             return teams;
+        }
+
+        private void UpdatePlayerForTeam(Team team, Uri uri)
+        {
+            var responseString = Client.GetStringAsync(uri).Result;
+
+            if (responseString == null)
+            {
+                return;
+            }
+
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(responseString);
+            var playerName = doc.DocumentNode.SelectSingleNode("//h1[contains(@class,'panel-title')]")?.InnerText;
+
+            var exists = _dbContext.TournamentPlayers.Where(t => t.Team.Name == team.Name)
+                .Any(t => t.Nickname == playerName);
+
+            if (playerName == null)
+            {
+                return;
+            }
+
+            var player = exists
+                ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Team.Name == playerName)
+                : new TournamentPlayer();
+
+            player.TeamId = team.Id;
+
+            if (!exists)
+            {
+                _dbContext.TournamentPlayers.Add(player);
+            }
         }
 
         private List<Competition> GetCompetitions()
@@ -182,7 +259,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             foreach (var tournament in responseJson)
             {
-                var competition = new Competition();
+                var competitionName = tournament["trname"].ToString();
+
+                var exists = _dbContext.Competitions.Any(c => c.Name == competitionName);
+
+                var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
 
                 competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
                 competition.Name = tournament["trname"].ToString();
@@ -204,6 +285,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 AddImageToDb(url, competition.Name);
 
                 competitions.Add(competition);
+
+                if (!exists)
+                {
+                    _dbContext.Competitions.Add(competition);
+                }
             }
 
             return competitions;
