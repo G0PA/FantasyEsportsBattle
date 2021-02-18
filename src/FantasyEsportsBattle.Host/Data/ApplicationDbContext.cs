@@ -1,9 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
 using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Host.Data.Models.Tournament;
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
-using System.Text;
+﻿using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Data;
 using FantasyEsportsBattle.Host.Data.Models;
@@ -17,9 +12,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
+
     class GamesOfLegends : Site
     {
         private readonly string _allTournamentsLink = "https://gol.gg/tournament/ajax.trlist.php";
@@ -150,7 +144,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                         team.Winrate = winrate;
                                         team.Wins = wins;
                                         team.Losses = losses;
-
+                                        team.TotalGames = totalGames;
                                         continue;
                                     }
 
