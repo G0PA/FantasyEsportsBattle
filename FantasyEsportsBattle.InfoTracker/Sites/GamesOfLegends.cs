@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
-using System.Text;
+﻿using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Data;
 using FantasyEsportsBattle.Host.Data.Models;
@@ -17,9 +12,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
+
     class GamesOfLegends : Site
     {
         private readonly string _allTournamentsLink = "https://gol.gg/tournament/ajax.trlist.php";
@@ -34,7 +28,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private readonly string _tournamentRankingLink =
             "https://gol.gg/tournament/tournament-ranking/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
-        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext,TimeSpan interval)
+        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
         {
             _dbContext = dbContext;
 
@@ -56,6 +50,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 }
 
                 _dbContext.SaveChanges();
+
+
 
                 UpdateDisplayImageIds();
 
@@ -125,6 +121,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         foreach (var table in tables)
                         {
+                            Console.WriteLine("Parsing teams");
+
                             if (table.InnerText.Contains($"{teamName} - {SeasonSuffix}"))
                             {
                                 var columns = table.SelectNodes(".//td");
@@ -133,7 +131,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                 {
                                     if (columns[i].InnerText.Contains("Region") && columns[i].InnerText != "-")
                                     {
-                                        team.Region = (Region) Enum.Parse(typeof(Region), columns[i + 1].InnerText,
+                                        team.Region = (Region)Enum.Parse(typeof(Region), columns[i + 1].InnerText,
                                             true);
 
                                         continue;
@@ -146,11 +144,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                         var wins = int.Parse(winrateArr[0].Trim());
                                         var losses = int.Parse(winrateArr[1].Trim());
                                         var totalGames = wins + losses;
-                                        var winrate = (int) (((double) wins / (double) totalGames) * 100);
+                                        var winrate = (int)(((double)wins / (double)totalGames) * 100);
                                         team.Winrate = winrate;
                                         team.Wins = wins;
                                         team.Losses = losses;
-
+                                        team.TotalGames = totalGames;
                                         continue;
                                     }
 
@@ -159,28 +157,27 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                     {
                                         var timeString = columns[i + 1].InnerText.Replace(":", ",");
                                         var time = float.Parse(timeString);
-                                        team.AverageGameTime = (float) time;
+                                        team.AverageGameTime = (float)time;
                                         continue;
                                     }
                                 }
+                            }
 
-                                if (table.InnerText.Contains("Player"))
+                            if (table.InnerText.Contains("Player"))
+                            {
+                                var linkNodes = table.SelectNodes(".//a");
+                                foreach (var node in linkNodes)
                                 {
-                                    var linkNodes = table.SelectNodes(".//a");
-                                    foreach (var node in linkNodes)
+                                    if (node.OuterHtml.Contains("player-stats"))
                                     {
-                                        if (node.OuterHtml.Contains("player-stats"))
-                                        {
-                                            var uriString = node.Attributes["href"].Value;
-                                            uriString = uriString.Substring(2);
-                                            var uri = new Uri("http://gol.gg" + uriString);
+                                        var uriString = node.Attributes["href"].Value;
+                                        uriString = uriString.Substring(2);
+                                        var uri = new Uri("http://gol.gg" + uriString);
 
-                                            UpdatePlayerForTeam(team, uri);
-                                        }
+                                        Console.WriteLine("Parsing players");
+                                        UpdatePlayerForTeam(team, uri);
                                     }
                                 }
-
-                                continue;
                             }
                         }
 
@@ -217,7 +214,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(responseString);
-            var playerName = doc.DocumentNode.SelectSingleNode("//h1[contains(@class,'panel-title')]")?.InnerText;
+            var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
 
             var exists = _dbContext.TournamentPlayers.Where(t => t.Team.Name == team.Name)
                 .Any(t => t.Nickname == playerName);
@@ -232,6 +229,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 : new TournamentPlayer();
 
             player.TeamId = team.Id;
+            player.Nickname = playerName;
+            //player.DisplayImage = 
 
             if (!exists)
             {
@@ -319,7 +318,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 }
                 else
                 {
-                    _dbContext.Images.Add(new Image {ImageData = byteArray, ImageTitle = imageTitle});
+                    _dbContext.Images.Add(new Image { ImageData = byteArray, ImageTitle = imageTitle });
                 }
 
                 return true;
@@ -344,7 +343,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-                
+
             }
 
             return null;
