@@ -13,6 +13,8 @@ namespace FantasyEsportsBattle.Host.Data.Models.Tournament
         public int DisplayImage { get; set; }
         public int MaxParticipants { get; set; }
         public string Description { get; set; }
+        public ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
+        public ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public int Priority { get; set; }
     }
 }

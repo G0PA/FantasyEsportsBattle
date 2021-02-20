@@ -4,14 +4,16 @@ using FantasyEsportsBattle.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Host.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210218092529_TournamentChanges")]
+    partial class TournamentChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,6 +66,9 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("TournamentId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -80,6 +85,8 @@ namespace FantasyEsportsBattle.Host.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("TournamentId");
 
                     b.ToTable("AspNetUsers");
                 });
@@ -102,21 +109,6 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.ToTable("Images");
                 });
 
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.ApplicationUserTournament", b =>
-                {
-                    b.Property<int>("TournamentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("TournamentId", "ApplicationUserId");
-
-                    b.HasIndex("ApplicationUserId");
-
-                    b.ToTable("ApplicationUserTournaments");
-                });
-
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
                 {
                     b.Property<int>("Id")
@@ -136,7 +128,12 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.Property<int>("Region")
                         .HasColumnType("int");
 
+                    b.Property<int?>("TournamentId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("TournamentId");
 
                     b.ToTable("Competitions");
                 });
@@ -210,21 +207,6 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tournaments");
-                });
-
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentCompetition", b =>
-                {
-                    b.Property<int>("TournamentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CompetitionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TournamentId", "CompetitionId");
-
-                    b.HasIndex("CompetitionId");
-
-                    b.ToTable("TournamentCompetitions");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
@@ -402,23 +384,18 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.ApplicationUserTournament", b =>
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.ApplicationUser", b =>
                 {
-                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.ApplicationUser", "ApplicationUser")
-                        .WithMany("ApplicationUserTournaments")
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", null)
+                        .WithMany("ApplicationUsers")
+                        .HasForeignKey("TournamentId");
+                });
 
-                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", "Tournament")
-                        .WithMany("ApplicationUserTournaments")
-                        .HasForeignKey("TournamentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
-
-                    b.Navigation("Tournament");
+            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", null)
+                        .WithMany("Competitions")
+                        .HasForeignKey("TournamentId");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
@@ -430,25 +407,6 @@ namespace FantasyEsportsBattle.Host.Migrations
                         .IsRequired();
 
                     b.Navigation("Competition");
-                });
-
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentCompetition", b =>
-                {
-                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", "Competition")
-                        .WithMany("TournamentCompetitions")
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", "Tournament")
-                        .WithMany("TournamentCompetitions")
-                        .HasForeignKey("TournamentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-
-                    b.Navigation("Tournament");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>
@@ -524,16 +482,9 @@ namespace FantasyEsportsBattle.Host.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("ApplicationUserTournaments");
-                });
-
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Competition", b =>
                 {
                     b.Navigation("Teams");
-
-                    b.Navigation("TournamentCompetitions");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Team", b =>
@@ -543,9 +494,9 @@ namespace FantasyEsportsBattle.Host.Migrations
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.Tournament", b =>
                 {
-                    b.Navigation("ApplicationUserTournaments");
+                    b.Navigation("ApplicationUsers");
 
-                    b.Navigation("TournamentCompetitions");
+                    b.Navigation("Competitions");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Tournament.TournamentPlayer", b =>

@@ -14,5 +14,6 @@ namespace FantasyEsportsBattle.Host.Data.Models.Tournament
         public int DisplayImage { get; set; }
         public ICollection<Team> Teams;
         public int Priority { get; set; }
+        public ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
     }
 }

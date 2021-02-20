@@ -12,8 +12,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Blazored.Modal;
 using FantasyEsportsBattle.Host.Data.Models;
+using FantasyEsportsBattle.Host.Data.Models.Tournament;
+using FantasyEsportsBattle.Host.DTOs;
 
 namespace FantasyEsportsBattle
 {
@@ -40,6 +43,8 @@ namespace FantasyEsportsBattle
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddRazorPages();
+
+            //var config = new MapperConfiguration(cfg => cfg.CreateMap<TournamentInfo, Tournament>().ForMember(destination => destination.Competitions,opts => opts.MapFrom(source => source.Competitions)));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
