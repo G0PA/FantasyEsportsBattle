@@ -36,7 +36,7 @@ namespace FantasyEsportsBattle.Host.Areas.Identity.Pages.Tournaments
 
         public ActionResult OnPostCreateTournament()
         {
-            if (_dbContext.Competitions.Any(c => c.Name == TournamentName) || Request.HttpContext?.User == null)
+            if (_dbContext.Tournaments.Any(c => c.Name == TournamentName) || Request.HttpContext?.User == null)
             {
                 return StatusCode((int) HttpStatusCode.BadRequest,"Tournament Name Already In Use");
             }
