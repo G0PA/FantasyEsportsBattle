@@ -52,7 +52,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 _dbContext.SaveChanges();
 
 
-
                 UpdateDisplayImageIds();
 
                 _dbContext.SaveChanges();
@@ -79,7 +78,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private List<Team> GetTeamsForCompetition(Competition competition)
         {
-
             List<Team> teams = new List<Team>();
 
             try
@@ -121,8 +119,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         foreach (var table in tables)
                         {
-                            Console.WriteLine("Parsing teams");
-
                             if (table.InnerText.Contains($"{teamName} - {SeasonSuffix}"))
                             {
                                 var columns = table.SelectNodes(".//td");
@@ -174,7 +170,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                         uriString = uriString.Substring(2);
                                         var uri = new Uri("http://gol.gg" + uriString);
 
-                                        Console.WriteLine("Parsing players");
                                         UpdatePlayerForTeam(team, uri);
                                     }
                                 }
@@ -228,9 +223,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Team.Name == playerName)
                 : new TournamentPlayer();
 
-            player.TeamId = team.Id;
+            player.Team = team;
             player.Nickname = playerName;
-            //player.DisplayImage = 
 
             if (!exists)
             {
