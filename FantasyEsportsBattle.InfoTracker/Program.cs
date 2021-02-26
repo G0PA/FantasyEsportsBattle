@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using FantasyEsportsBattle.InfoTracker.Sites;
 using FantasyEsportsBattle.Data;
+using FantasyEsportsBattle.Host.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -18,6 +20,11 @@ namespace FantasyEsportsBattle.InfoTracker
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
             optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             var context = new ApplicationDbContext(optionsBuilder.Options);
+
+            //var defaultImg = context.Images.FirstOrDefault(i => i.Id == Constants.DefaultImageId);
+            //defaultImg.ImageData = File.ReadAllBytes("default.png");
+            //context.SaveChanges();
+
             StartTrackers(context);
         }
 

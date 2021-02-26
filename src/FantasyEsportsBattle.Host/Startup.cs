@@ -16,7 +16,7 @@ using AutoMapper;
 using Blazored.Modal;
 using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Host.Data.Models.Tournament;
-using FantasyEsportsBattle.Host.DTOs;
+using MatBlazor;
 
 namespace FantasyEsportsBattle
 {
@@ -43,6 +43,11 @@ namespace FantasyEsportsBattle
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddRazorPages();
+
+            services.AddMatBlazor();
+
+
+            services.AddServerSideBlazor();
 
             //var config = new MapperConfiguration(cfg => cfg.CreateMap<TournamentInfo, Tournament>().ForMember(destination => destination.Competitions,opts => opts.MapFrom(source => source.Competitions)));
         }
@@ -72,7 +77,10 @@ namespace FantasyEsportsBattle
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers();
                 endpoints.MapRazorPages();
+                endpoints.MapBlazorHub();
+                endpoints.MapFallbackToPage("/_Host");
             });
         }
     }

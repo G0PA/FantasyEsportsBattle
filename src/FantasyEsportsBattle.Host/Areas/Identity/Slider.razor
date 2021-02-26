@@ -1,0 +1,20 @@
+﻿@using MatBlazor
+
+@*<MatTextField @bind-Value="@Value" Label="Value"></MatTextField>
+<MatTextField @bind-Value="@ValueMin" Label="ValueMin"></MatTextField>
+<MatTextField @bind-Value="@ValueMax" Label="ValueMax"></MatTextField>*@
+<MatSlider TValue="decimal" Value="@Value" ValueMin="@ValueMin" ValueMax="@ValueMax" ValueChanged="@OnValueChanged2" EnableStep="true" Step="1"></MatSlider>
+<h4>@Value</h4>
+@code
+{
+ 
+public decimal Value { get; set; } = 2;
+public decimal ValueMin { get; set; } = 2;
+public decimal ValueMax { get; set; } = 8;
+ 
+public void OnValueChanged2(decimal val)
+{
+Value = val;
+}
+ 
+}

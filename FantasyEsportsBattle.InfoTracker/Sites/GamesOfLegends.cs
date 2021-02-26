@@ -164,23 +164,28 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                     }
                                 }
 
-                                if (table.InnerText.Contains("Player"))
-                                {
-                                    var linkNodes = table.SelectNodes(".//a");
-                                    foreach (var node in linkNodes)
-                                    {
-                                        if (node.OuterHtml.Contains("player-stats"))
-                                        {
-                                            var uriString = node.Attributes["href"].Value;
-                                            uriString = uriString.Substring(2);
-                                            var uri = new Uri("http://gol.gg" + uriString);
+                                continue;
+                            }
 
-                                            UpdatePlayerForTeam(team, uri);
-                                        }
+                            if (table.InnerText.Contains("Player"))
+                            {
+                                var linkNodes = table.SelectNodes(".//a").Where(n => !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList();
+
+                                for (int i = 0; i < linkNodes.Count; i++)
+                                {
+                                    if (linkNodes[i].OuterHtml.Contains("player-stats"))
+                                    {
+                                        var role = table.SelectNodes(".//tr//td").Where(n =>
+                                            n.Attributes.Count == 0 && !n.InnerText.Contains("&nbsp") &&
+                                            !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
+
+                                        var uriString = linkNodes[i].Attributes["href"].Value;
+                                        uriString = uriString.Substring(2);
+                                        var uri = new Uri("http://gol.gg" + uriString);
+
+                                        UpdatePlayerForTeam(team, uri);
                                     }
                                 }
-
-                                continue;
                             }
                         }
 
@@ -265,7 +270,15 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
 
-                competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                if(Enum.TryParse(typeof(Region),tournament["region"].ToString(),out var region))
+                {
+                    competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                }
+                else
+                {
+                    Console.WriteLine($"Unable to find Region Enum for {tournament["region"].ToString()}");
+                }
+
                 competition.Name = tournament["trname"].ToString();
 
                 var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
