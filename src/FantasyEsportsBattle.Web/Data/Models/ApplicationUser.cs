@@ -9,6 +9,6 @@ namespace FantasyEsportsBattle.Web.Data.Models
 {
     public class ApplicationUser : IdentityUser
     {
-        public ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
+        public virtual ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
     }
 }

@@ -11,6 +11,7 @@ using FantasyEsportsBattle.Web.Data.Models.Tournament;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments

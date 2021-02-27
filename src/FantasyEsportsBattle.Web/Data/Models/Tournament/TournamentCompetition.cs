@@ -8,8 +8,8 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
     public class TournamentCompetition
     {
         public int TournamentId { get; set; }
-        public Tournament Tournament { get; set; }
+        public virtual Tournament Tournament { get; set; }
         public int CompetitionId { get; set; }
-        public Competition Competition { get; set; }
+        public virtual Competition Competition { get; set; }
     }
 }

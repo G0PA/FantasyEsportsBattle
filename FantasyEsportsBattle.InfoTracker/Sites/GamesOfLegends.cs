@@ -5,14 +5,14 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
-using FantasyEsportsBattle.Data;
 using FantasyEsportsBattle.Host.Data.Models;
-using FantasyEsportsBattle.Host.Data.Models.Tournament;
 using FantasyEsportsBattle.Host.Enumerations;
 using Newtonsoft.Json.Linq;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
+    using FantasyEsportsBattle.Web.Data;
+    using FantasyEsportsBattle.Web.Data.Models.Tournament;
     using HtmlAgilityPack;
     using System;
     using System.Collections.Generic;

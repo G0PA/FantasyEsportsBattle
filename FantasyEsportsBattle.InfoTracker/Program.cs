@@ -3,8 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using FantasyEsportsBattle.InfoTracker.Sites;
-using FantasyEsportsBattle.Data;
-using FantasyEsportsBattle.Host.Constants;
+using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 

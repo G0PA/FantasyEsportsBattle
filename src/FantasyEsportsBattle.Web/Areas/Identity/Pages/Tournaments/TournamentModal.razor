@@ -4,7 +4,7 @@
 @inject TournamentCreation TourCreation
 @inject AuthenticationStateProvider AuthProvider
 
-<MatButton OnClick="@OpenForm" Raised="true">Create Tournament</MatButton>
+<MatButton OnClick="@OpenForm" Raised="true">Create New Tournament</MatButton>
 
 <MatDialog @bind-IsOpen="@IsFormOpen">
     <MatDialogTitle>Create Tournament </MatDialogTitle>
@@ -29,7 +29,7 @@
                     <img src="@imgSrc" width="85" height="85" />
                     @competition.Key
 
-                    <input name="CheckedCompetitions" value="@competition.Key" type="checkbox" checked=@Checked @onchange="eventArgs => { AddOrRemoveCompetition(competition.Key, bool.Parse(eventArgs.Value.ToString())); }" />
+                    <input name="CheckedCompetitions" value="@competition.Key" type="checkbox" checked=@false @onchange="eventArgs => { AddOrRemoveCompetition(competition.Key, bool.Parse(eventArgs.Value.ToString())); }" />
 
                 </h5>
             </div>
@@ -40,6 +40,15 @@
         <MatButton OnClick="@(e => { IsFormOpen = false; })">Exit</MatButton>
         <MatButton Disabled="@IsFormDisabled" OnClick="@CreateTournament">Create</MatButton>
     </MatDialogActions>
+    <MatSnackbar @bind-IsOpen="@IsTournamentCreated">
+        <MatSnackbarContent>Tournament Created Successfully</MatSnackbarContent>
+        <MatSnackbarActions>
+            <MatButton OnClick="@(e => { IsFormOpen = false; })" Raised="true">OK</MatButton>
+        </MatSnackbarActions>
+    </MatSnackbar>
+    <MatSnackbar @bind-IsOpen="@IsTournamentCreatedFailed">
+        <MatSnackbarContent>Tournament Creation Failed. The Tournament Name may already be in use...</MatSnackbarContent>
+    </MatSnackbar>
 </MatDialog>
 
 @code{
@@ -56,9 +65,12 @@
                    string.IsNullOrEmpty(TournamentName);
         }
     }
-
+    public bool IsTournamentCreated { get; set; }
+    public bool IsTournamentCreatedFailed { get; set; }
     public decimal ValueMin { get; set; } = 2;
     public decimal ValueMax { get; set; } = 8;
+
+    [Parameter] public EventCallback OnTournamentCreated { get; set; }
 
     public void OnValueChanged2(int val)
     {
@@ -110,14 +122,28 @@
 
     public async Task CreateTournament()
     {
-        IsFormOpen = false;
         var user = await AuthProvider.GetAuthenticationStateAsync();
-        TourCreation.OnCreateTournament(CheckedCompetitions, TournamentName, (int) Value, user.User);
+        var isTourneyCreated = TourCreation.OnCreateTournament(CheckedCompetitions, TournamentName, (int) Value, user.User);
+        if (isTourneyCreated)
+        {
+            IsTournamentCreated = true;
+            CheckedCompetitions = new List<string>();
+            TournamentName = string.Empty;
+            Value = 2;
+            await OnTournamentCreated.InvokeAsync();
+            StateHasChanged();
+        }
+        else
+        {
+            IsTournamentCreatedFailed = true;
+        }
     }
 
     async Task OpenForm()
     {
         IsFormOpen = true;
+        IsTournamentCreated = false;
+        IsTournamentCreatedFailed = false;
         await Task.Delay(500);
         await JS.InvokeAsync<string>("ResizeWindow");
     }

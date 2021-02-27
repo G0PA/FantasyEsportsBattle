@@ -10,9 +10,9 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public ICollection<TournamentPlayer> Players { get; set; }
+        public virtual ICollection<TournamentPlayer> Players { get; set; }
         public int CompetitionId { get; set; }
-        public Competition Competition { get; set; }
+        public virtual Competition Competition { get; set; }
         public int DisplayImage { get; set; }
         public Region Region { get; set; }
         public int Wins { get; set; }

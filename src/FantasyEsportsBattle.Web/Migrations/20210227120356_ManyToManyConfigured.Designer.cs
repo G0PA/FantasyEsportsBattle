@@ -4,20 +4,52 @@ using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Host.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210227120356_ManyToManyConfigured")]
+    partial class ManyToManyConfigured
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.3")
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+            modelBuilder.Entity("ApplicationUserTournament", b =>
+                {
+                    b.Property<string>("ApplicationUsersId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("TournamentsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ApplicationUsersId", "TournamentsId");
+
+                    b.HasIndex("TournamentsId");
+
+                    b.ToTable("ApplicationUserTournament");
+                });
+
+            modelBuilder.Entity("CompetitionTournament", b =>
+                {
+                    b.Property<int>("CompetitionsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TournamentsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CompetitionsId", "TournamentsId");
+
+                    b.HasIndex("TournamentsId");
+
+                    b.ToTable("CompetitionTournament");
+                });
 
             modelBuilder.Entity("FantasyEsportsBattle.Host.Data.Models.Image", b =>
                 {
@@ -397,6 +429,36 @@ namespace FantasyEsportsBattle.Host.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens");
+                });
+
+            modelBuilder.Entity("ApplicationUserTournament", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Web.Data.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationUsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Tournament", null)
+                        .WithMany()
+                        .HasForeignKey("TournamentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CompetitionTournament", b =>
+                {
+                    b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Competition", null)
+                        .WithMany()
+                        .HasForeignKey("CompetitionsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Tournament", null)
+                        .WithMany()
+                        .HasForeignKey("TournamentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Web.Data.Models.Tournament.ApplicationUserTournament", b =>

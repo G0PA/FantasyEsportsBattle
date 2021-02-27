@@ -1,58 +1,15 @@
 ﻿@page "/Identity/Tournaments"
 @using FantasyEsportsBattle.Web.Data
-@*<div class="row">
-        <td><button class="btn btn-sm btn-dark details" data-id="tournament" data-toggle="modal" data-target="#tournament-modal">Create Tournament</button></td>
 
-        @using (Html.BeginForm("CreateTournament", "Index", FormMethod.Post))
-        {
-            <div class="modal fade" tabindex="-1" role="dialog" id="tournament-modal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Create Tournament</h5>aa
-                            <button type="button" class="close" data-dismiss="modal" aria-label-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div>
-                                <input name="TournamentName" value="Tournament Name" type="text" />
-                                <div>
-                                    <h3>Tournament Size: </h3>
+<TournamentModal OnTournamentCreated="OnTourneyCreated"/>
 
-                                    <Slider></Slider>
+<AvailableTournaments @ref="availableTourneys"/>
 
-                                </div>
-                                <h3>Choose between Competitions:</h3>
-                                @foreach (var competition in Competitions)
-                                {
-
-                                    var base64 = Convert.ToBase64String(@competition.Value);
-                                    var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
-
-                                    <div style="white-space: nowrap">
-
-                                        <h5>
-                                            <img src="@imgSrc" width="85" height="85" />
-                                            @competition.Key
-                                            <input name="CheckedCompetitions" value="@competition.Key" type="checkbox">
-                                        </h5>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <td>
-                                <input type="submit" value="Create" asp-page-handler="CreateTournament" class="btn btn-primary" />
-                            </td>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-    </div>*@
-
-<TournamentModal/>
-
-<h1>All Tournaments</h1>
+@code{
+    AvailableTournaments availableTourneys = new AvailableTournaments();
+    public void OnTourneyCreated()
+    {
+        StateHasChanged();
+        availableTourneys.UpdatePlayerTournaments();
+    }
+}
