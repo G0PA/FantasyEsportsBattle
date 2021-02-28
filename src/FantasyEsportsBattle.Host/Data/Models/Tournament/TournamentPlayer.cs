@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using FantasyEsportsBattle.Host.Enumerations;
 
 namespace FantasyEsportsBattle.Host.Data.Models.Tournament
 {
@@ -9,6 +6,7 @@ namespace FantasyEsportsBattle.Host.Data.Models.Tournament
     {
         public int Id { get; set; }
         public string Nickname { get; set; }
+        public Roles Role { get; set; }
         public int DisplayImage { get; set; }
         public int TeamId { get; set; }
         public Team Team { get; set; }

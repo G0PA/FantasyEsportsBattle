@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace FantasyEsportsBattle.Host.Enumerations
+﻿namespace FantasyEsportsBattle.Host.Enumerations
 {
     public enum Region
     {
@@ -30,5 +25,6 @@ namespace FantasyEsportsBattle.Host.Enumerations
         NL = 21,
         CIS = 22,
         PCS = 23,
+        OCE = 24,
     }
 }

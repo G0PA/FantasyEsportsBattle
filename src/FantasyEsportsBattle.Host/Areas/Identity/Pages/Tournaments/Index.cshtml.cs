@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using FantasyEsportsBattle.Data;
 using FantasyEsportsBattle.Host.Data.Models.Tournament;
 using Microsoft.AspNetCore.Mvc;

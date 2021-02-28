@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using FantasyEsportsBattle.Host.Data.Models;
 using Microsoft.AspNetCore.Identity;

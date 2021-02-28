@@ -5,6 +5,7 @@ using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Host.Data.Models.Tournament;
 using FantasyEsportsBattle.Host.Enumerations;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
@@ -51,7 +52,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 _dbContext.SaveChanges();
 
-
                 UpdateDisplayImageIds();
 
                 _dbContext.SaveChanges();
@@ -97,10 +97,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 {
                     try
                     {
-                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Competition.Name == competition.Name);
-
-                        Team team = teamFromDb == null ? new Team() : teamFromDb;
-
                         var doc = new HtmlDocument();
 
                         var content = Client.GetStringAsync(teamLink).Result;
@@ -109,7 +105,13 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         var teamName = doc.DocumentNode.SelectSingleNode("//h1").InnerText;
 
+                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Name == teamName);
+
+                        Team team = teamFromDb == null ? new Team() : teamFromDb;
+
                         team.Name = teamName;
+
+                        Console.WriteLine($"Parsing team {team.Name}");
 
                         team.CompetitionId = competition.Id;
 
@@ -161,16 +163,23 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                             if (table.InnerText.Contains("Player"))
                             {
-                                var linkNodes = table.SelectNodes(".//a");
-                                foreach (var node in linkNodes)
-                                {
-                                    if (node.OuterHtml.Contains("player-stats"))
-                                    {
-                                        var uriString = node.Attributes["href"].Value;
-                                        uriString = uriString.Substring(2);
-                                        var uri = new Uri("http://gol.gg" + uriString);
+                                var linkNodes = table.SelectNodes(".//a").Where(n => !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList();
 
-                                        UpdatePlayerForTeam(team, uri);
+                                for (int i = 0; i < linkNodes.Count; i++)
+                                {
+                                    if (linkNodes[i].OuterHtml.Contains("player-stats"))
+                                    {
+                                        var role = table.SelectNodes(".//tr//td").Where(n =>
+                                            n.Attributes.Count == 0
+                                            && !n.InnerText.Contains("&nbsp")
+                                            && !n.InnerHtml.Contains("stats")
+                                            && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
+
+                                        var uriString = linkNodes[i].Attributes["href"].Value;
+                                        uriString = uriString.Substring(2);
+                                        var uri = new Uri("http://gol.gg/" + uriString);
+
+                                        UpdatePlayerForTeam(team, uri, role);
                                     }
                                 }
                             }
@@ -198,7 +207,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             return teams;
         }
 
-        private void UpdatePlayerForTeam(Team team, Uri uri)
+        private void UpdatePlayerForTeam(Team team, Uri uri, string role)
         {
             var responseString = Client.GetStringAsync(uri).Result;
 
@@ -219,12 +228,20 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 return;
             }
 
+            if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
+            {
+                return;
+            }
+
             var player = exists
-                ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Team.Name == playerName)
+                ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Nickname == playerName)
                 : new TournamentPlayer();
 
+            player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
             player.Team = team;
             player.Nickname = playerName;
+
+            Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
 
             if (!exists)
             {
@@ -258,7 +275,15 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
 
-                competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                try
+                {
+                    competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                }
+                catch (Exception e)
+                {
+                    Log.Logger.Information($"New Region! Add - {tournament["region"]}");
+                    continue;
+                }
                 competition.Name = tournament["trname"].ToString();
 
                 var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
