@@ -4,14 +4,16 @@ using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210228092028_RenamedPlayerTables")]
+    partial class RenamedPlayerTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,7 +169,7 @@ namespace FantasyEsportsBattle.Web.Migrations
 
                     b.HasIndex("TeamId");
 
-                    b.ToTable("CompetitionPlayers");
+                    b.ToTable("TournamentPlayers");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Web.Data.Models.Tournament.CompetitionPlayerStats", b =>
@@ -191,7 +193,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.HasIndex("CompetitionPlayerId")
                         .IsUnique();
 
-                    b.ToTable("CompetitionPlayerStatuses");
+                    b.ToTable("TournamentPlayerStatuses");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Web.Data.Models.Tournament.Team", b =>

@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
-using System.Text;
+﻿using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Host.Enumerations;
+using FantasyEsportsBattle.Web.Enumerations;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
@@ -17,9 +14,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
+
     class GamesOfLegends : Site
     {
         private readonly string _allTournamentsLink = "https://gol.gg/tournament/ajax.trlist.php";
@@ -34,7 +30,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private readonly string _tournamentRankingLink =
             "https://gol.gg/tournament/tournament-ranking/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
-        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext,TimeSpan interval)
+        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
         {
             _dbContext = dbContext;
 
@@ -83,7 +79,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private List<Team> GetTeamsForCompetition(Competition competition)
         {
-
             List<Team> teams = new List<Team>();
 
             try
@@ -103,10 +98,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 {
                     try
                     {
-                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Competition.Name == competition.Name);
-
-                        Team team = teamFromDb == null ? new Team() : teamFromDb;
-
                         var doc = new HtmlDocument();
 
                         var content = Client.GetStringAsync(teamLink).Result;
@@ -115,7 +106,13 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         var teamName = doc.DocumentNode.SelectSingleNode("//h1").InnerText;
 
+                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Name == teamName);
+
+                        Team team = teamFromDb == null ? new Team() : teamFromDb;
+
                         team.Name = teamName;
+
+                        Console.WriteLine($"Parsing team {team.Name}");
 
                         team.CompetitionId = competition.Id;
 
@@ -133,7 +130,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                 {
                                     if (columns[i].InnerText.Contains("Region") && columns[i].InnerText != "-")
                                     {
-                                        team.Region = (Region) Enum.Parse(typeof(Region), columns[i + 1].InnerText,
+                                        team.Region = (Region)Enum.Parse(typeof(Region), columns[i + 1].InnerText,
                                             true);
 
                                         continue;
@@ -146,11 +143,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                         var wins = int.Parse(winrateArr[0].Trim());
                                         var losses = int.Parse(winrateArr[1].Trim());
                                         var totalGames = wins + losses;
-                                        var winrate = (int) (((double) wins / (double) totalGames) * 100);
+                                        var winrate = (int)(((double)wins / (double)totalGames) * 100);
                                         team.Winrate = winrate;
                                         team.Wins = wins;
                                         team.Losses = losses;
-
+                                        team.TotalGames = totalGames;
                                         continue;
                                     }
 
@@ -159,12 +156,10 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                     {
                                         var timeString = columns[i + 1].InnerText.Replace(":", ",");
                                         var time = float.Parse(timeString);
-                                        team.AverageGameTime = (float) time;
+                                        team.AverageGameTime = (float)time;
                                         continue;
                                     }
                                 }
-
-                                continue;
                             }
 
                             if (table.InnerText.Contains("Player"))
@@ -176,14 +171,16 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                     if (linkNodes[i].OuterHtml.Contains("player-stats"))
                                     {
                                         var role = table.SelectNodes(".//tr//td").Where(n =>
-                                            n.Attributes.Count == 0 && !n.InnerText.Contains("&nbsp") &&
-                                            !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
+                                            n.Attributes.Count == 0
+                                            && !n.InnerText.Contains("&nbsp")
+                                            && !n.InnerHtml.Contains("stats")
+                                            && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
 
                                         var uriString = linkNodes[i].Attributes["href"].Value;
                                         uriString = uriString.Substring(2);
-                                        var uri = new Uri("http://gol.gg" + uriString);
+                                        var uri = new Uri("http://gol.gg/" + uriString);
 
-                                        UpdatePlayerForTeam(team, uri);
+                                        UpdatePlayerForTeam(team, uri, role);
                                     }
                                 }
                             }
@@ -211,7 +208,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             return teams;
         }
 
-        private void UpdatePlayerForTeam(Team team, Uri uri)
+        private void UpdatePlayerForTeam(Team team, Uri uri, string role)
         {
             var responseString = Client.GetStringAsync(uri).Result;
 
@@ -222,9 +219,9 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(responseString);
-            var playerName = doc.DocumentNode.SelectSingleNode("//h1[contains(@class,'panel-title')]")?.InnerText;
+            var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
 
-            var exists = _dbContext.TournamentPlayers.Where(t => t.Team.Name == team.Name)
+            var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
                 .Any(t => t.Nickname == playerName);
 
             if (playerName == null)
@@ -232,15 +229,24 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 return;
             }
 
-            var player = exists
-                ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Team.Name == playerName)
-                : new TournamentPlayer();
+            if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
+            {
+                return;
+            }
 
-            player.TeamId = team.Id;
+            var player = exists
+                ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
+                : new CompetitionPlayer();
+
+            player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
+            player.Team = team;
+            player.Nickname = playerName;
+
+            Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
 
             if (!exists)
             {
-                _dbContext.TournamentPlayers.Add(player);
+                _dbContext.CompetitionPlayers.Add(player);
             }
         }
 
@@ -270,15 +276,15 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
 
-                if(Enum.TryParse(typeof(Region),tournament["region"].ToString(),out var region))
+                try
                 {
                     competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
                 }
-                else
+                catch (Exception e)
                 {
-                    Console.WriteLine($"Unable to find Region Enum for {tournament["region"].ToString()}");
+                    Log.Logger.Information($"New Region! Add - {tournament["region"]}");
+                    continue;
                 }
-
                 competition.Name = tournament["trname"].ToString();
 
                 var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
@@ -332,7 +338,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 }
                 else
                 {
-                    _dbContext.Images.Add(new Image {ImageData = byteArray, ImageTitle = imageTitle});
+                    _dbContext.Images.Add(new Image { ImageData = byteArray, ImageTitle = imageTitle });
                 }
 
                 return true;
@@ -357,7 +363,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-                
+
             }
 
             return null;

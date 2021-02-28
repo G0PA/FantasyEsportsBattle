@@ -16,8 +16,8 @@ namespace FantasyEsportsBattle.Web.Data
         public DbSet<Image> Images { get; set; }
         public DbSet<Competition> Competitions { get; set; }
         public DbSet<Team> Teams { get; set; }
-        public DbSet<TournamentPlayer> TournamentPlayers { get; set; }
-        public DbSet<TournamentPlayerStats> TournamentPlayerStatuses { get; set; }
+        public DbSet<CompetitionPlayer> CompetitionPlayers { get; set; }
+        public DbSet<CompetitionPlayerStats> CompetitionPlayerStatuses { get; set; }
         public DbSet<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public DbSet<TournamentCompetition> TournamentCompetitions { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -36,7 +36,12 @@ namespace FantasyEsportsBattle.Web.Data
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<TournamentPlayer>()
+            builder.Entity<CompetitionPlayer>()
+                .HasOne(cp => cp.CompetitionPlayerStats)
+                .WithOne(p => p.CompetitionPlayer)
+                .HasForeignKey<CompetitionPlayerStats>(cp => cp.CompetitionPlayerId);
+
+            builder.Entity<CompetitionPlayer>()
                 .HasOne(t => t.Team)
                 .WithMany(t => t.Players);
 
