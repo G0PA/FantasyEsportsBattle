@@ -1,14 +1,15 @@
 ﻿using System.Net.Http;
 using System.Threading;
-using FantasyEsportsBattle.Data;
 using FantasyEsportsBattle.Host.Data.Models;
-using FantasyEsportsBattle.Host.Data.Models.Tournament;
 using FantasyEsportsBattle.Host.Enumerations;
+using FantasyEsportsBattle.Web.Enumerations;
 using Newtonsoft.Json.Linq;
 using Serilog;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
+    using FantasyEsportsBattle.Web.Data;
+    using FantasyEsportsBattle.Web.Data.Models.Tournament;
     using HtmlAgilityPack;
     using System;
     using System.Collections.Generic;
@@ -220,7 +221,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             doc.LoadHtml(responseString);
             var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
 
-            var exists = _dbContext.TournamentPlayers.Where(t => t.Team.Name == team.Name)
+            var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
                 .Any(t => t.Nickname == playerName);
 
             if (playerName == null)
@@ -234,8 +235,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
 
             var player = exists
-                ? _dbContext.TournamentPlayers.FirstOrDefault(t => t.Nickname == playerName)
-                : new TournamentPlayer();
+                ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
+                : new CompetitionPlayer();
 
             player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
             player.Team = team;
@@ -245,7 +246,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             if (!exists)
             {
-                _dbContext.TournamentPlayers.Add(player);
+                _dbContext.CompetitionPlayers.Add(player);
             }
         }
 

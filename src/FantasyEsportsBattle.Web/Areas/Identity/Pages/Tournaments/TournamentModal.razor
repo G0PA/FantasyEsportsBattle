@@ -1,0 +1,152 @@
+﻿@using FantasyEsportsBattle.Web.Data
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject TournamentCreation TourCreation
+@inject AuthenticationStateProvider AuthProvider
+
+<MatButton OnClick="@OpenForm" Raised="true">Create New Tournament</MatButton>
+
+<MatDialog @bind-IsOpen="@IsFormOpen">
+    <MatDialogTitle>Create Tournament </MatDialogTitle>
+    <MatDialogContent>
+        <MatTextField Label="Tournament Name" @bind-Value="@TournamentName"></MatTextField>
+        <h3>Tournament Size: </h3>
+
+        <MatSlider TValue="decimal" ValueMin="@ValueMin" ValueMax="@ValueMax" @bind-Value="@Value" EnableStep="true" Markers="true" Step="1" Pin="true" Discrete="true"></MatSlider>
+        <h4>@Value</h4>
+
+        <h3>Choose between Competitions:</h3>
+        @foreach (var competition in @Competitions)
+        {
+            bool Checked = false;
+
+            var base64 = Convert.ToBase64String(@competition.Value);
+            var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
+
+            <div style="white-space: nowrap">
+
+                <h5>
+                    <img src="@imgSrc" width="85" height="85" />
+                    @competition.Key
+
+                    <input name="CheckedCompetitions" value="@competition.Key" type="checkbox" checked=@false @onchange="eventArgs => { AddOrRemoveCompetition(competition.Key, bool.Parse(eventArgs.Value.ToString())); }" />
+
+                </h5>
+            </div>
+
+        }
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton OnClick="@(e => { IsFormOpen = false; })">Exit</MatButton>
+        <MatButton Disabled="@IsFormDisabled" OnClick="@CreateTournament">Create</MatButton>
+    </MatDialogActions>
+    <MatSnackbar @bind-IsOpen="@IsTournamentCreated">
+        <MatSnackbarContent>Tournament Created Successfully</MatSnackbarContent>
+        <MatSnackbarActions>
+            <MatButton OnClick="@(e => { IsFormOpen = false; })" Raised="true">OK</MatButton>
+        </MatSnackbarActions>
+    </MatSnackbar>
+    <MatSnackbar @bind-IsOpen="@IsTournamentCreatedFailed">
+        <MatSnackbarContent>Tournament Creation Failed. The Tournament Name may already be in use...</MatSnackbarContent>
+    </MatSnackbar>
+</MatDialog>
+
+@code{
+    public string TournamentName { get; set; }
+    private Dictionary<string, byte[]> Competitions { get; set; }
+    public List<string> CheckedCompetitions { get; set; }
+    public bool IsFormOpen { get; set; }
+    public bool IsFormDisabled
+    {
+        get
+        {
+            return CheckedCompetitions == null ||
+                   !CheckedCompetitions.Any() ||
+                   string.IsNullOrEmpty(TournamentName);
+        }
+    }
+    public bool IsTournamentCreated { get; set; }
+    public bool IsTournamentCreatedFailed { get; set; }
+    public decimal ValueMin { get; set; } = 2;
+    public decimal ValueMax { get; set; } = 8;
+
+    [Parameter] public EventCallback OnTournamentCreated { get; set; }
+
+    public void OnValueChanged2(int val)
+    {
+        Value = val;
+    }
+
+    public decimal Value
+    {
+        get => _val;
+        set
+        {
+            _val = value;
+            this.StateHasChanged();
+        }
+    }
+    private decimal _val = 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CheckedCompetitions = new List<string>();
+
+        var competitions = dbContext.Competitions.Select(c => c.Name).ToList();
+
+        var defaultImage = dbContext.Images.FirstOrDefault(i => i.Id == Constants.Constants.DefaultImageId)
+        .ImageData;
+
+        Competitions = new Dictionary<string, byte[]>();
+
+        foreach (var competition in competitions)
+        {
+
+            var image = dbContext.Images.FirstOrDefault(i => i.ImageTitle == competition)?.ImageData;
+
+            Competitions.Add(competition, image == null ? defaultImage : image);
+        }
+    }
+
+    public void AddOrRemoveCompetition(string competitionName, bool isChecked)
+    {
+        if (CheckedCompetitions.Contains(competitionName) && !isChecked)
+        {
+            CheckedCompetitions.Remove(competitionName);
+        }
+        else if (isChecked)
+        {
+            CheckedCompetitions.Add(competitionName);
+        }
+    }
+
+    public async Task CreateTournament()
+    {
+        var user = await AuthProvider.GetAuthenticationStateAsync();
+        var isTourneyCreated = TourCreation.OnCreateTournament(CheckedCompetitions, TournamentName, (int) Value, user.User);
+        if (isTourneyCreated)
+        {
+            IsTournamentCreated = true;
+            CheckedCompetitions = new List<string>();
+            TournamentName = string.Empty;
+            Value = 2;
+            await OnTournamentCreated.InvokeAsync();
+            StateHasChanged();
+        }
+        else
+        {
+            IsTournamentCreatedFailed = true;
+        }
+    }
+
+    async Task OpenForm()
+    {
+        IsFormOpen = true;
+        IsTournamentCreated = false;
+        IsTournamentCreatedFailed = false;
+        await Task.Delay(500);
+        await JS.InvokeAsync<string>("ResizeWindow");
+    }
+
+
+}

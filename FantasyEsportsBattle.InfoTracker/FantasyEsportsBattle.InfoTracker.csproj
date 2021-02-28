@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\FantasyEsportsBattle.Host\FantasyEsportsBattle.Host.csproj" />
+    <ProjectReference Include="..\src\FantasyEsportsBattle.Web\FantasyEsportsBattle.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -14,27 +14,54 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Create Tournament</h5>
+                        <h5 class="modal-title">Create Tournament</h5>aa
                         <button type="button" class="close" data-dismiss="modal" aria-label-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
                         <div>
-                            <input name="TournamentName" value="Tournament Name" type="text"/>
+                            <input name="TournamentName" value="Tournament Name" type="text" />
+                            <div>
+                                <h3>Tournament Size: </h3>
+                                @*<input id="tournamentSize" name="TournamentSize" type="range" value="2" min="2" step="1" max="8" list="tickmarks" />
+
+                                        <datalist id="tickmarks">
+                                            <option value="2" label="2"></option>
+                                            <option value="3" label="3"></option>
+                                            <option value="4" label="4"></option>
+                                            <option value="5" label="5"></option>
+                                            <option value="6" label="6"></option>
+                                            <option value="7" label="7"></option>
+                                            <option value="8" label="8"></option>
+                                        </datalist>
+
+                                    <h5 id="val">2</h5>*@
+
+                                @*@(await Html.RenderComponentAsync<Slider>(RenderMode.Server))*@
+
+                            </div>
                             <h3>Choose between Competitions:</h3>
                             @foreach (var competition in @Model.Competitions)
                             {
-                                <h5>
-                                    @competition
-                                    <input name="CheckedCompetitions" value="@competition" type="checkbox">
-                                </h5>
+
+                                var base64 = Convert.ToBase64String(@competition.Value);
+                                var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
+
+                                <div style="white-space: nowrap">
+
+                                    <h5>
+                                        <img src="@imgSrc" width="85" height="85" />
+                                        @competition.Key
+                                        <input name="CheckedCompetitions" value="@competition.Key" type="checkbox">
+                                    </h5>
+                                </div>
                             }
                         </div>
                     </div>
                     <div class="modal-footer">
                         <td>
-                            <input type="submit" value="Create" asp-page-handler="CreateTournament" class="btn btn-primary"/>
+                            <input type="submit" value="Create" asp-page-handler="CreateTournament" class="btn btn-primary" />
                         </td>
                     </div>
                 </div>
@@ -44,14 +71,3 @@
 
 </div>
 <h1>All Tournaments</h1>
-
-@section Scripts {
-    <script>
-        $(function () {
-            $('button.details').on('click', function () {
-                $('.modal-body').load('tournament');
-            });
-        })
-    </script>
-    <partial name="_ValidationScriptsPartial" />
-}

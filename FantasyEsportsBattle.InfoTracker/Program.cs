@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using FantasyEsportsBattle.InfoTracker.Sites;
-using FantasyEsportsBattle.Data;
+using FantasyEsportsBattle.Web.Constants;
+using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -19,13 +21,18 @@ namespace FantasyEsportsBattle.InfoTracker
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Build())
                 .Enrich.FromLogContext()
-                .WriteTo.File(@"../../../log/logRegions.txt", rollingInterval: RollingInterval.Day)
+                .WriteTo.File(@"log/logRegions.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
             var configuration = builder.Build();
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
             optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             var context = new ApplicationDbContext(optionsBuilder.Options);
+
+            var defaultImg = context.Images.FirstOrDefault(i => i.Id == Constants.DefaultImageId);
+            defaultImg.ImageData = File.ReadAllBytes("default.png");
+            context.SaveChanges();
+
             StartTrackers(context);
         }
 

@@ -1,0 +1,15 @@
+﻿@page "/Identity/Tournaments"
+@using FantasyEsportsBattle.Web.Data
+
+<TournamentModal OnTournamentCreated="OnTourneyCreated"/>
+
+<AvailableTournaments @ref="availableTourneys"/>
+
+@code{
+    AvailableTournaments availableTourneys = new AvailableTournaments();
+    public void OnTourneyCreated()
+    {
+        StateHasChanged();
+        availableTourneys.UpdatePlayerTournaments();
+    }
+}

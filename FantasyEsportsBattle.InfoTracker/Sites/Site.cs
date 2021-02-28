@@ -1,6 +1,6 @@
-﻿using System;
+﻿using FantasyEsportsBattle.Web.Data;
+using System;
 using System.Net.Http;
-using FantasyEsportsBattle.Data;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {

@@ -1,0 +1,46 @@
+﻿@using FantasyEsportsBattle.Web.Data
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using Microsoft.EntityFrameworkCore; 
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthProvider
+
+    <h1>My Tournaments:</h1>
+
+<MatTable Items="@PlayerTournaments" class="mat-elevation-z5">
+    <MatTableHeader>
+        <th>Name</th>
+        <th>Participants</th>
+        <th>Regions Included In Tournament</th>
+    </MatTableHeader>
+    <MatTableRow>
+        <td>@context.Name</td>
+        <td>@String.Format("{0}/{1}", @context.ApplicationUserTournaments == null ? 0 : @context.ApplicationUserTournaments.ToList().Count(), @context.MaxParticipants)</td>
+        <td>@context.TournamentCompetitions.Count()</td>
+    </MatTableRow>
+</MatTable>
+
+@code {
+
+    public List<Tournament> PlayerTournaments { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims.FirstOrDefault().Value;
+        if (DbContext.Tournaments.Any())
+        {
+            PlayerTournaments = DbContext.Tournaments.Where(t => t.ApplicationUserTournaments != null && t.ApplicationUserTournaments.ToList().Any(aut => aut.ApplicationUserId == userId)).ToList();
+        }
+    }
+
+    public void UpdatePlayerTournaments()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims.FirstOrDefault().Value;
+        if (DbContext.Tournaments.Any())
+        {
+            PlayerTournaments = DbContext.Tournaments.Where(t => t.ApplicationUserTournaments != null && t.ApplicationUserTournaments.ToList().Any(aut => aut.ApplicationUserId == userId)).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+}
