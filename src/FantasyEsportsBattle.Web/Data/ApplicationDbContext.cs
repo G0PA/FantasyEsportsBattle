@@ -63,7 +63,6 @@ namespace FantasyEsportsBattle.Web.Data
                 .HasForeignKey(aut => aut.ApplicationUserId);
 
 
-
             builder.Entity<TournamentCompetition>().HasKey(tourCompetition =>
                 new { tourCompetition.TournamentId, tourCompetition.CompetitionId });
 

@@ -1,28 +1,56 @@
 ﻿@using FantasyEsportsBattle.Web.Data
 @using FantasyEsportsBattle.Web.Data.Models.Tournament
-@using Microsoft.EntityFrameworkCore; 
+@using Microsoft.EntityFrameworkCore;
 @inject ApplicationDbContext DbContext
 @inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavigationManager
 
-    <h1>My Tournaments:</h1>
+<h1>My Tournaments:</h1>
 
-<MatTable Items="@PlayerTournaments" class="mat-elevation-z5">
+<MatTable AllowSelection="true" Striped="true" ShowPaging="false" Items="@PlayerTournaments" class="mat-elevation-z5" SelectionChanged="SelectionChangedEvent">
     <MatTableHeader>
         <th>Name</th>
         <th>Participants</th>
         <th>Regions Included In Tournament</th>
+        <th>Host</th>
     </MatTableHeader>
     <MatTableRow>
-        <td>@context.Name</td>
+        <td href='Identity/Tournament/@context.Id'>@context.Name</td>
         <td>@String.Format("{0}/{1}", @context.ApplicationUserTournaments == null ? 0 : @context.ApplicationUserTournaments.ToList().Count(), @context.MaxParticipants)</td>
-        <td>@context.TournamentCompetitions.Count()</td>
+        <td>@String.Format("({0}) {1}", @context.TournamentCompetitions.Count(), @String.Join(",", @context.TournamentCompetitions.Select(tc => tc.Competition.Name)))</td>
+        <td>@context.TournamentHost.UserName</td>
     </MatTableRow>
 </MatTable>
 
+@*@foreach (var tournament in PlayerTournaments)
+    {
+    <MatDrawerContainer Style="height: 100vh;" DrawerWidth="400px">
+        <MatDrawer @bind-Opened="IsOpen">
+                <SpecificTournament @ref="SpecificTournament" />
+        </MatDrawer>
+        <MatDrawerContent>
+            <div>
+                <MatButton Href="" OnClick="@((e) => SelectionChangedEvent(tournament))">
+                    @if (IsOpen && tournament == SelectedTournament)
+                    {
+                        <span>Hide Tournament</span>
+                    }
+                    else
+                    {
+                        <span>@tournament.Name (@tournament.ApplicationUserTournaments.Count / @tournament.MaxParticipants)</span>
+                    }
+                </MatButton>
+            </div>
+        </MatDrawerContent>
+    </MatDrawerContainer>
+    }*@
+
 @code {
 
+    SpecificTournament SpecificTournament = new SpecificTournament();
+    public bool IsOpen { get; set; }
     public List<Tournament> PlayerTournaments { get; set; }
-
+    public Tournament SelectedTournament { get; set; }
     protected override async Task OnInitializedAsync()
     {
         var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims.FirstOrDefault().Value;
@@ -41,6 +69,17 @@
         }
 
         StateHasChanged();
+    }
+
+    public void SelectionChangedEvent(object tournament)
+    {
+        if (tournament != null)
+        {
+
+            SelectedTournament = (Tournament)tournament;
+            IsOpen = !IsOpen;
+            NavigationManager.NavigateTo($"/Identity/Tournament/{SelectedTournament.Id}");
+        }
     }
 
 }

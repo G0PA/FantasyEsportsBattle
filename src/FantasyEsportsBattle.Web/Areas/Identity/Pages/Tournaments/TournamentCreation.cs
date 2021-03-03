@@ -34,10 +34,13 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
                 return false;
             }
 
+            var id = claims.Claims.FirstOrDefault().Value;
+
             _dbContext.Tournaments.Add(new Tournament
             {
                 Name = tournamentName,
                 MaxParticipants = tournamentSize,
+                TournamentHostId = id
             });
 
             _dbContext.SaveChanges();
@@ -56,7 +59,7 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
             }
 
             _dbContext.ApplicationUserTournaments.Add(new ApplicationUserTournament
-                {TournamentId = tournamentId, ApplicationUserId = claims.Claims.FirstOrDefault().Value});
+                {TournamentId = tournamentId, ApplicationUserId = id });
 
             _dbContext.SaveChanges();
 

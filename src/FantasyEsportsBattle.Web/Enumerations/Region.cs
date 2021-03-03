@@ -30,5 +30,6 @@ namespace FantasyEsportsBattle.Host.Enumerations
         NL = 21,
         CIS = 22,
         PCS = 23,
+        OCE = 24,
     }
 }

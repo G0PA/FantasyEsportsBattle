@@ -14,6 +14,9 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public int MaxParticipants { get; set; }
         public virtual ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
         public virtual ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
+        public virtual ICollection<TournamentInvitation> TournamentInvitations { get; set; }
+        public string TournamentHostId { get; set; }
+        public virtual ApplicationUser TournamentHost { get; set; }
         public int Priority { get; set; }
     }
 }

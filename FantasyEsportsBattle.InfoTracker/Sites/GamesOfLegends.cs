@@ -210,43 +210,50 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private void UpdatePlayerForTeam(Team team, Uri uri, string role)
         {
-            var responseString = Client.GetStringAsync(uri).Result;
-
-            if (responseString == null)
+            try
             {
-                return;
+                var responseString = Client.GetStringAsync(uri).Result;
+
+                if (responseString == null)
+                {
+                    return;
+                }
+
+                HtmlDocument doc = new HtmlDocument();
+                doc.LoadHtml(responseString);
+                var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
+
+                var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
+                    .Any(t => t.Nickname == playerName);
+
+                if (playerName == null)
+                {
+                    return;
+                }
+
+                if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
+                {
+                    return;
+                }
+
+                var player = exists
+                    ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
+                    : new CompetitionPlayer();
+
+                player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
+                player.Team = team;
+                player.Nickname = playerName;
+
+                Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
+
+                if (!exists)
+                {
+                    _dbContext.CompetitionPlayers.Add(player);
+                }
             }
-
-            HtmlDocument doc = new HtmlDocument();
-            doc.LoadHtml(responseString);
-            var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
-
-            var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
-                .Any(t => t.Nickname == playerName);
-
-            if (playerName == null)
+            catch(Exception ex)
             {
-                return;
-            }
-
-            if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
-            {
-                return;
-            }
-
-            var player = exists
-                ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
-                : new CompetitionPlayer();
-
-            player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
-            player.Team = team;
-            player.Nickname = playerName;
-
-            Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
-
-            if (!exists)
-            {
-                _dbContext.CompetitionPlayers.Add(player);
+                //Log Exception
             }
         }
 

@@ -4,7 +4,7 @@
 @inject TournamentCreation TourCreation
 @inject AuthenticationStateProvider AuthProvider
 
-<MatButton OnClick="@OpenForm" Raised="true">Create New Tournament</MatButton>
+<MatButton OnClick="@OpenForm" Class="create-tournament" Raised="true">Create New Tournament</MatButton>
 
 <MatDialog @bind-IsOpen="@IsFormOpen">
     <MatDialogTitle>Create Tournament </MatDialogTitle>
@@ -18,8 +18,6 @@
         <h3>Choose between Competitions:</h3>
         @foreach (var competition in @Competitions)
         {
-            bool Checked = false;
-
             var base64 = Convert.ToBase64String(@competition.Value);
             var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
 
@@ -90,22 +88,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        CheckedCompetitions = new List<string>();
-
-        var competitions = dbContext.Competitions.Select(c => c.Name).ToList();
-
-        var defaultImage = dbContext.Images.FirstOrDefault(i => i.Id == Constants.Constants.DefaultImageId)
-        .ImageData;
-
-        Competitions = new Dictionary<string, byte[]>();
-
-        foreach (var competition in competitions)
-        {
-
-            var image = dbContext.Images.FirstOrDefault(i => i.ImageTitle == competition)?.ImageData;
-
-            Competitions.Add(competition, image == null ? defaultImage : image);
-        }
+        InitializeCompetitions();
     }
 
     public void AddOrRemoveCompetition(string competitionName, bool isChecked)
@@ -127,15 +110,33 @@
         if (isTourneyCreated)
         {
             IsTournamentCreated = true;
-            CheckedCompetitions = new List<string>();
             TournamentName = string.Empty;
             Value = 2;
             await OnTournamentCreated.InvokeAsync();
-            StateHasChanged();
         }
         else
         {
             IsTournamentCreatedFailed = true;
+        }
+    }
+
+    private void InitializeCompetitions()
+    {
+        CheckedCompetitions = new List<string>();
+
+        var competitions = dbContext.Competitions.Select(c => c.Name).ToList();
+
+        var defaultImage = dbContext.Images.FirstOrDefault(i => i.Id == Constants.Constants.DefaultImageId)
+        .ImageData;
+
+        Competitions = new Dictionary<string, byte[]>();
+
+        foreach (var competition in competitions)
+        {
+
+            var image = dbContext.Images.FirstOrDefault(i => i.ImageTitle == competition)?.ImageData;
+
+            Competitions.Add(competition, image == null ? defaultImage : image);
         }
     }
 

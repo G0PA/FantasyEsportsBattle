@@ -47,11 +47,9 @@ namespace FantasyEsportsBattle.Web
 
             services.AddServerSideBlazor();
 
-            services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+            services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ApplicationUser>>();
 
             services.AddDatabaseDeveloperPageExceptionFilter();
-
-            services.AddSingleton<WeatherForecastService>();
 
             services.AddScoped<TournamentCreation>();
 

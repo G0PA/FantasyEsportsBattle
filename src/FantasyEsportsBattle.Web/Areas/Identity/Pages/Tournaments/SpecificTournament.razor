@@ -1,0 +1,65 @@
+﻿@page "/Identity/Tournament/{tournamentId}" 
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject AuthenticationStateProvider AuthProvider
+@using FantasyEsportsBattle.Web.Data.Models
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using FantasyEsportsBattle.Web.Data 
+
+<AuthorizeView>
+    <Authorized>
+        @if (ShouldLoad)
+        {
+        <div class="mat-layout-grid">
+            <div class="mat-layout-grid-inner">
+                <div class="mat-layout-grid-cell">
+                    <h3>Players (@UsersInTournament.Count / @Tournament.MaxParticipants)</h3>
+                    @foreach (var user in UsersInTournament)
+                    {
+                        <h4>@user.UserName</h4>
+                    }
+
+                </div>
+            </div>
+        </div>
+        }
+        @if (!ShouldLoad)
+        {
+            <h3>User not registered for tournament</h3>
+        }
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please login to view Tournament</h2>
+    </NotAuthorized>
+    </AuthorizeView>
+
+    @code {
+
+        [Parameter]
+        public string TournamentId { get; set; }
+        public Tournament Tournament { get; set; }
+        List<ApplicationUser> UsersInTournament { get; set; }
+        public bool ShouldLoad { get; set; }
+        public bool IsTournamentHost { get; set; }
+
+        protected override async Task OnInitializedAsync()
+        {
+            var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+            var parsedTournamentId = int.Parse(TournamentId);
+
+            Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
+
+            if(Tournament.ApplicationUserTournaments.Any(aut => aut.ApplicationUserId == userId))
+            {
+                IsTournamentHost = Tournament.TournamentHost.Id == userId;
+                UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+                ShouldLoad = true;
+            }
+            else
+            {
+                ShouldLoad = false;
+            }
+        }
+    }

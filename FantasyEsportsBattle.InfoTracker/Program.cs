@@ -30,8 +30,17 @@ namespace FantasyEsportsBattle.InfoTracker
             var context = new ApplicationDbContext(optionsBuilder.Options);
 
             var defaultImg = context.Images.FirstOrDefault(i => i.Id == Constants.DefaultImageId);
-            defaultImg.ImageData = File.ReadAllBytes("default.png");
-            context.SaveChanges();
+            if (defaultImg == null)
+            {
+                var img = new Host.Data.Models.Image
+                { 
+                    ImageTitle = "DefaultImage" 
+                };
+
+                img.ImageData = File.ReadAllBytes("default.png");
+                context.Images.Add(img);
+                context.SaveChanges();
+            }
 
             StartTrackers(context);
         }

@@ -1,7 +1,14 @@
 ﻿@page "/Identity/Tournaments"
 @using FantasyEsportsBattle.Web.Data
+@using FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 
-<TournamentModal OnTournamentCreated="OnTourneyCreated"/>
+<style>
+    .create-tournament {
+        background: lightcoral !important;
+    }
+</style>
+
+<TournamentCreationModal OnTournamentCreated="OnTourneyCreated" />
 
 <AvailableTournaments @ref="availableTourneys"/>
 
@@ -9,7 +16,6 @@
     AvailableTournaments availableTourneys = new AvailableTournaments();
     public void OnTourneyCreated()
     {
-        StateHasChanged();
         availableTourneys.UpdatePlayerTournaments();
     }
 }
