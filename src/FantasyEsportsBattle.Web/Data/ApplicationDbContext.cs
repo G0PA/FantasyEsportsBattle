@@ -75,6 +75,11 @@ namespace FantasyEsportsBattle.Web.Data
                 .HasOne(tourCompetition => tourCompetition.Competition)
                 .WithMany(t => t.TournamentCompetitions)
                 .HasForeignKey(aut => aut.CompetitionId);
+
+            builder.Entity<Tournament>()
+                .HasOne(t => t.TournamentHost)
+                .WithMany(u => u.HostedTournaments)
+                .HasForeignKey(t => t.TournamentHostId);
         }
     }
 }
