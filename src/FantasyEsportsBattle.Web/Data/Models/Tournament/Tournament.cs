@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FantasyEsportsBattle.Web.Enumerations;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,5 +19,8 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public string TournamentHostId { get; set; }
         public virtual ApplicationUser TournamentHost { get; set; }
         public int Priority { get; set; }
+        public TournamentType TournamentType { get; set; }
+        public TournamentAlgorithm TournamentAlgorithm { get; set; }
+        public TournamentState TournamentState { get; set; }
     }
 }

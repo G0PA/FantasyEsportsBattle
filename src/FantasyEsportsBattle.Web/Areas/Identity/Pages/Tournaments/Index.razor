@@ -1,21 +1,49 @@
 ﻿@page "/Identity/Tournaments"
 @using FantasyEsportsBattle.Web.Data
+@using FantasyEsportsBattle.Web.Data.Models
 @using FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject AuthenticationStateProvider AuthProvider
 
 <style>
     .create-tournament {
         background: lightcoral !important;
     }
+    .Tabs{
+    margin-bottom: 3%;
+    }
 </style>
 
-<TournamentCreationModal OnTournamentCreated="OnTourneyCreated" />
+<MatTabGroup @bind-ActiveIndex="@tabIndex">
+    <MatTab Class="Tabs" Label=@String.Format("My Tournaments ({0})",User.ApplicationUserTournaments.Count)>
+        <TournamentCreationModal OnStateChanged="OnStateChanged" />
 
-<AvailableTournaments @ref="availableTourneys"/>
+        <AvailableTournaments @ref="availableTourneys" />
+    </MatTab>
+    <MatTab Class="Tabs" Label="Public Tournaments">
+        Second Content
+    </MatTab>
+    <MatTab Class="Tabs" Label="@String.Format("Tournament Invitations ({0})",User.TournamentInvitations.Count)">
+        <TournamentInvitations OnStateChanged="OnStateChanged"/>
+    </MatTab>
+</MatTabGroup>
 
 @code{
+    public int tabIndex = 0;
+
     AvailableTournaments availableTourneys = new AvailableTournaments();
-    public void OnTourneyCreated()
+    public ApplicationUser User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+        User = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+    }
+    public void OnStateChanged()
     {
         availableTourneys.UpdatePlayerTournaments();
+        StateHasChanged();
     }
 }

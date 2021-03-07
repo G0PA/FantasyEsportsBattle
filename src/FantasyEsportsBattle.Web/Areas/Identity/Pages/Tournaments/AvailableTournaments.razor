@@ -11,12 +11,16 @@
     <MatTableHeader>
         <th>Name</th>
         <th>Participants</th>
+        <th>Tournament Type</th>
+        <th>Algorithm Type</th>
         <th>Regions Included In Tournament</th>
         <th>Host</th>
     </MatTableHeader>
     <MatTableRow>
         <td href='Identity/Tournament/@context.Id'>@context.Name</td>
         <td>@String.Format("{0}/{1}", @context.ApplicationUserTournaments == null ? 0 : @context.ApplicationUserTournaments.ToList().Count(), @context.MaxParticipants)</td>
+        <td>@context.TournamentType</td>
+        <td>@context.TournamentAlgorithm</td>
         <td>@String.Format("({0}) {1}", @context.TournamentCompetitions.Count(), @String.Join(",", @context.TournamentCompetitions.Select(tc => tc.Competition.Name)))</td>
         <td>@context.TournamentHost.UserName</td>
     </MatTableRow>

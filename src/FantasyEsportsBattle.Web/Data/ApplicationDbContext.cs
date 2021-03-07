@@ -20,6 +20,7 @@ namespace FantasyEsportsBattle.Web.Data
         public DbSet<CompetitionPlayerStats> CompetitionPlayerStatuses { get; set; }
         public DbSet<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public DbSet<TournamentCompetition> TournamentCompetitions { get; set; }
+        public DbSet<TournamentInvitation> TournamentInvitations { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -80,6 +81,10 @@ namespace FantasyEsportsBattle.Web.Data
                 .HasOne(t => t.TournamentHost)
                 .WithMany(u => u.HostedTournaments)
                 .HasForeignKey(t => t.TournamentHostId);
+
+            builder.Entity<TournamentInvitation>()
+                .HasOne(ti => ti.InvitedUser)
+                .WithMany(u => u.TournamentInvitations);
         }
     }
 }

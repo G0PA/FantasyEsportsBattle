@@ -1,0 +1,66 @@
+﻿@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject AuthenticationStateProvider AuthProvider
+@inject TournamentService TourneyService
+@using FantasyEsportsBattle.Web.Data.Models
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using FantasyEsportsBattle.Web.Data
+
+<style>
+    .invitation {
+        color: darkgreen !important;
+        font-family: serif
+    }
+</style>
+@if (User.TournamentInvitations.Any())
+{
+    @foreach (var tourneyInvite in User.TournamentInvitations)
+    {
+        <div class="mat-elevation-z3">
+            <h3 class="invitation">You are invited To Tournament "@tourneyInvite.Tournament.Name" by "@tourneyInvite.InvitationSenderUser.UserName"</h3>
+            <MatFAB Value="" OnClick="@(_ => TryJoinTournament(tourneyInvite))" Icon="@MatIconNames.Check_circle_outline" Label="JOIN TOURNAMENT"></MatFAB>
+        </div>
+    }
+}
+@if (!User.TournamentInvitations.Any())
+{
+    <h3>You currently have no Tournament Invitations :(</h3>
+}
+
+<MatSnackbar @bind-IsOpen="@JoinedTournament">
+    <MatSnackbarContent>Tournament Joined Successfully</MatSnackbarContent>
+    <MatSnackbarActions>
+        <MatButton Raised="true">OK</MatButton>
+    </MatSnackbarActions>
+</MatSnackbar>
+<MatSnackbar @bind-IsOpen="@JoinTournamentFailed">
+    <MatSnackbarContent>Failed to Join Tournament</MatSnackbarContent>
+    <MatButton Raised="true">OK</MatButton>
+</MatSnackbar>
+
+@code {
+    public ApplicationUser User { get; set; }
+    public bool JoinTournamentFailed { get; set; }
+    public bool JoinedTournament { get; set; }
+    [Parameter] public EventCallback OnStateChanged { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+        User = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+    }
+
+    public void TryJoinTournament(TournamentInvitation tourneyInvite)
+    {
+        if (TourneyService.OnAcceptInvitation(tourneyInvite))
+        {
+            JoinedTournament = true;
+        }
+        else
+        {
+            JoinTournamentFailed = true;
+        }
+
+        OnStateChanged.InvokeAsync();
+    }
+}

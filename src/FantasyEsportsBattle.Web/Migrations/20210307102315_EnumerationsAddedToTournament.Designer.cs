@@ -4,14 +4,16 @@ using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210307102315_EnumerationsAddedToTournament")]
+    partial class EnumerationsAddedToTournament
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,9 +45,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("AccessFailedCount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("AccountType")
                         .HasColumnType("int");
 
                     b.Property<string>("ConcurrencyStamp")
@@ -266,9 +265,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<string>("TournamentHostId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("TournamentState")
-                        .HasColumnType("int");
-
                     b.Property<int>("TournamentType")
                         .HasColumnType("int");
 
@@ -318,7 +314,7 @@ namespace FantasyEsportsBattle.Web.Migrations
 
                     b.HasIndex("TournamentId");
 
-                    b.ToTable("TournamentInvitations");
+                    b.ToTable("TournamentInvitation");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -539,7 +535,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                         .HasForeignKey("InvitationSenderUserId");
 
                     b.HasOne("FantasyEsportsBattle.Web.Data.Models.ApplicationUser", "InvitedUser")
-                        .WithMany("TournamentInvitations")
+                        .WithMany()
                         .HasForeignKey("InvitedUserId");
 
                     b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Tournament", "Tournament")
@@ -611,8 +607,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Navigation("ApplicationUserTournaments");
 
                     b.Navigation("HostedTournaments");
-
-                    b.Navigation("TournamentInvitations");
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Web.Data.Models.Tournament.Competition", b =>

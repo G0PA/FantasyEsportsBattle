@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using FantasyEsportsBattle.Web.Data;
 using FantasyEsportsBattle.Web.Data.Models;
 using FantasyEsportsBattle.Web.Data.Models.Tournament;
+using FantasyEsportsBattle.Web.Enumerations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -16,18 +17,18 @@ using Microsoft.Extensions.Logging;
 
 namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 {
-    public class TournamentCreation
+    public class TournamentService
     {
-        private readonly ILogger<TournamentCreation> _logger;
+        private readonly ILogger<TournamentService> _logger;
         private readonly ApplicationDbContext _dbContext;
 
-        public TournamentCreation(ILogger<TournamentCreation> logger, ApplicationDbContext dbContext)
+        public TournamentService(ILogger<TournamentService> logger, ApplicationDbContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;
         }
 
-        public bool OnCreateTournament(List<string> checkedCompetitions, string tournamentName, int tournamentSize,ClaimsPrincipal claims)
+        public bool OnCreateTournament(List<string> checkedCompetitions, string tournamentName, int tournamentSize,ClaimsPrincipal claims, TournamentType tournamentType,TournamentAlgorithm tournamentAlgorithm)
         {
             if (_dbContext.Tournaments.Any(c => c.Name == tournamentName))
             {
@@ -40,7 +41,9 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
             {
                 Name = tournamentName,
                 MaxParticipants = tournamentSize,
-                TournamentHostId = id
+                TournamentHostId = id,
+                TournamentType = tournamentType,
+                TournamentAlgorithm = tournamentAlgorithm
             });
 
             _dbContext.SaveChanges();
@@ -60,6 +63,26 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 
             _dbContext.ApplicationUserTournaments.Add(new ApplicationUserTournament
                 {TournamentId = tournamentId, ApplicationUserId = id });
+
+            _dbContext.SaveChanges();
+
+            return true;
+        }
+
+        public bool OnAcceptInvitation(TournamentInvitation tournamentInvitation)
+        {
+            if(tournamentInvitation.Tournament.TournamentState != TournamentState.NotStarted || tournamentInvitation.Tournament.MaxParticipants <= tournamentInvitation.Tournament.ApplicationUserTournaments.Count)
+            {
+                return false;
+            }
+
+            tournamentInvitation.Tournament.ApplicationUserTournaments.Add(new ApplicationUserTournament
+            {
+                ApplicationUser = tournamentInvitation.InvitedUser,
+                Tournament = tournamentInvitation.Tournament
+            });
+
+            _dbContext.TournamentInvitations.Remove(tournamentInvitation);
 
             _dbContext.SaveChanges();
 
