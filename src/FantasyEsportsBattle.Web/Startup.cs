@@ -51,7 +51,7 @@ namespace FantasyEsportsBattle.Web
 
             services.AddDatabaseDeveloperPageExceptionFilter();
 
-            services.AddScoped<TournamentCreation>();
+            services.AddScoped<TournamentService>();
 
             services.AddMatBlazor();
 
