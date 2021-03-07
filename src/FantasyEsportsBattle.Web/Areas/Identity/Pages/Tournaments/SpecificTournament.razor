@@ -1,27 +1,107 @@
-﻿@page "/Identity/Tournament/{tournamentId}" 
+﻿@page "/Identity/Tournament/{tournamentId}"
 @inject ApplicationDbContext dbContext
 @inject IJSRuntime JS;
 @inject AuthenticationStateProvider AuthProvider
 @using FantasyEsportsBattle.Web.Data.Models
 @using FantasyEsportsBattle.Web.Data.Models.Tournament
-@using FantasyEsportsBattle.Web.Data 
+@using FantasyEsportsBattle.Web.Data
+
+<style>
+    .invite-user {
+        background: green !important;
+        right: 5%;
+        position: absolute;
+    }
+    .host {
+        color: red !important;
+        font-family: serif
+    }
+    .inTournament {
+        color: yellow !important;
+        font-family: serif
+    }
+    .invited {
+        color: gray !important;
+        font-family: serif
+    }
+    .text {
+        font-family: serif;
+        color: GrayText;
+    }
+    .playerList {
+        margin-top: 3%;
+    }
+    .tournamentName{
+        color: darkslateblue;
+        font-family: fantasy;
+        text-align: center;
+    }
+</style>
 
 <AuthorizeView>
     <Authorized>
         @if (ShouldLoad)
         {
-        <div class="mat-layout-grid">
-            <div class="mat-layout-grid-inner">
-                <div class="mat-layout-grid-cell">
-                    <h3>Players (@UsersInTournament.Count / @Tournament.MaxParticipants)</h3>
-                    @foreach (var user in UsersInTournament)
-                    {
-                        <h4>@user.UserName</h4>
-                    }
-
-                </div>
+            <div class="mat-elevation-z4" style="padding: 10px;">
+                <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(true))">Expand All</MatButton>
+                <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(false))">Collapse All</MatButton>
+                <MatButton Icon="@MatIconNames.Favorite" Outlined="true" Class="invite-user" OnClick="@(() => OpenForm())">Invite User</MatButton>
             </div>
-        </div>
+            <h1 style="margin-top: 3%; margin-bottom: 2%;" class="tournamentName">@Tournament.Name</h1>
+
+            <MatNavMenu @ref="navMenu">
+                <MatNavSubMenu>
+                    <MatNavSubMenuHeader Title="@PlayersInTournamentTitle">
+                        <MatNavItem AllowSelection="false">
+                            <MatIcon Icon="assignment_ind" />&nbsp;@PlayersInTournamentTitle
+                        </MatNavItem>
+                    </MatNavSubMenuHeader>
+
+                    <MatNavSubMenuList>
+                        @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser == Tournament.TournamentHost))
+                        {
+                            <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="host">  (HOST)</h4></MatNavItem>
+                        }
+                        @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser != Tournament.TournamentHost))
+                        {
+                            <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="inTournament">  (IN TOURNAMENT)</h4></MatNavItem>
+                        }
+
+                        <h2 class="playerList"></h2>
+                        @foreach (var user in Tournament.TournamentInvitations)
+                        {
+                            <MatNavItem Class="playerList" AllowSelection="false"><h4 class="text">@user.InvitedUser.UserName    </h4><h4 class="invited">  (PENDING INVITE)</h4></MatNavItem>
+                        }
+                    </MatNavSubMenuList>
+
+                </MatNavSubMenu>
+            </MatNavMenu>
+
+            <MatDialog @bind-IsOpen="@IsInviteFormOpen">
+                <MatDialogTitle>Invite Player To Tournament </MatDialogTitle>
+                <MatDialogContent>
+                    <MatTextField Label="Player Username" @bind-Value="@InvitedUser"></MatTextField>
+                </MatDialogContent>
+                <MatDialogActions>
+                    <MatButton OnClick="@(e => { IsInviteFormOpen = false; })">Exit</MatButton>
+                    <MatButton Disabled="@IsFormDisabled" OnClick="@TryInvitePlayer">Invite</MatButton>
+                </MatDialogActions>
+                <MatSnackbar @bind-IsOpen="@IsPlayerInvited">
+                    <MatSnackbarContent>Player Invited to tournament Successfully</MatSnackbarContent>
+                    <MatSnackbarActions>
+                        <MatButton OnClick="@(e => { IsInviteFormOpen = false; })" Raised="true">OK</MatButton>
+                    </MatSnackbarActions>
+                </MatSnackbar>
+                <MatSnackbar @bind-IsOpen="@IsPlayerInviteFailed">
+                    <MatSnackbarContent>Player Invite failed. User does not Exist</MatSnackbarContent>
+                </MatSnackbar>
+                <MatSnackbar @bind-IsOpen="@IsPlayerAlreadyInvited">
+                    <MatSnackbarContent>Player Is Already Invited to Tournament</MatSnackbarContent>
+                </MatSnackbar>
+                <MatSnackbar @bind-IsOpen="@IsPlayerAlreadyInTournament">
+                    <MatSnackbarContent>Player Is Already in this Tournament</MatSnackbarContent>
+                </MatSnackbar>
+            </MatDialog>
         }
         @if (!ShouldLoad)
         {
@@ -32,34 +112,88 @@
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>
     </NotAuthorized>
-    </AuthorizeView>
+</AuthorizeView>
 
-    @code {
+@code {
 
-        [Parameter]
-        public string TournamentId { get; set; }
-        public Tournament Tournament { get; set; }
-        List<ApplicationUser> UsersInTournament { get; set; }
-        public bool ShouldLoad { get; set; }
-        public bool IsTournamentHost { get; set; }
-
-        protected override async Task OnInitializedAsync()
+    [Parameter]
+    public string TournamentId { get; set; }
+    public Tournament Tournament { get; set; }
+    List<ApplicationUser> UsersInTournament { get; set; }
+    public bool ShouldLoad { get; set; }
+    public bool IsTournamentHost { get; set; }
+    public bool IsInviteFormOpen { get; set; }
+    public bool IsPlayerInviteFailed { get; set; }
+    public bool IsPlayerInvited { get; set; }
+    public bool IsFormDisabled { get; set; }
+    public bool IsPlayerAlreadyInvited { get; set; }
+    public bool IsPlayerAlreadyInTournament { get; set; }
+    public string InvitedUser { get; set; }
+    public string PlayersInTournamentTitle
+    {
+        get
         {
-            var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
-
-            var parsedTournamentId = int.Parse(TournamentId);
-
-            Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
-
-            if(Tournament.ApplicationUserTournaments.Any(aut => aut.ApplicationUserId == userId))
-            {
-                IsTournamentHost = Tournament.TournamentHost.Id == userId;
-                UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
-                ShouldLoad = true;
-            }
-            else
-            {
-                ShouldLoad = false;
-            }
+            return String.Format("Players In Tournament {0}/{1}", UsersInTournament.Count, Tournament.MaxParticipants);
         }
     }
+
+    MatNavMenu navMenu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+        var parsedTournamentId = int.Parse(TournamentId);
+
+        Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
+
+        if (Tournament.ApplicationUserTournaments.Any(aut => aut.ApplicationUserId == userId))
+        {
+            IsTournamentHost = Tournament.TournamentHost.Id == userId;
+            UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+            ShouldLoad = true;
+        }
+        else
+        {
+            ShouldLoad = false;
+        }
+    }
+
+    public async Task TryInvitePlayer()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims.FirstOrDefault().Value;
+        var user = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+        var invitedUser = dbContext.Users.ToList().FirstOrDefault(u => u.UserName.ToLowerInvariant() == InvitedUser.ToLowerInvariant());
+
+        if (invitedUser == null)
+        {
+            IsPlayerInviteFailed = true;
+        }
+        else if (Tournament.ApplicationUserTournaments.ToList().Any(aut => aut.ApplicationUser == invitedUser))
+        {
+            IsPlayerAlreadyInTournament = true;
+        }
+        else if (Tournament.TournamentInvitations.All(ti => ti.InvitedUser != invitedUser))
+        {
+            Tournament.TournamentInvitations.Add(new TournamentInvitation
+            {
+                InvitedUser = invitedUser,
+                Tournament = Tournament,
+                InvitationSenderUserId = userId,
+            });
+
+            dbContext.SaveChanges();
+
+            IsPlayerInvited = true;
+        }
+        else
+        {
+            IsPlayerAlreadyInvited = true;
+        }
+    }
+
+    public void OpenForm()
+    {
+        IsInviteFormOpen = true;
+    }
+}

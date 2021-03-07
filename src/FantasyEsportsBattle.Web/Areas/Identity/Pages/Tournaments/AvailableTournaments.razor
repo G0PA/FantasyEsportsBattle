@@ -22,29 +22,6 @@
     </MatTableRow>
 </MatTable>
 
-@*@foreach (var tournament in PlayerTournaments)
-    {
-    <MatDrawerContainer Style="height: 100vh;" DrawerWidth="400px">
-        <MatDrawer @bind-Opened="IsOpen">
-                <SpecificTournament @ref="SpecificTournament" />
-        </MatDrawer>
-        <MatDrawerContent>
-            <div>
-                <MatButton Href="" OnClick="@((e) => SelectionChangedEvent(tournament))">
-                    @if (IsOpen && tournament == SelectedTournament)
-                    {
-                        <span>Hide Tournament</span>
-                    }
-                    else
-                    {
-                        <span>@tournament.Name (@tournament.ApplicationUserTournaments.Count / @tournament.MaxParticipants)</span>
-                    }
-                </MatButton>
-            </div>
-        </MatDrawerContent>
-    </MatDrawerContainer>
-    }*@
-
 @code {
 
     SpecificTournament SpecificTournament = new SpecificTournament();

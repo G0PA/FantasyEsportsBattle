@@ -13,7 +13,7 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public string InvitedUserId { get; set; }
         public virtual ApplicationUser InvitedUser { get; set; }
         public string InvitationSenderUserId { get; set; }
-        public virtual ApplicationUser InvitationSender { get; set; }
+        public virtual ApplicationUser InvitationSenderUser { get; set; }
 
     }
 }
