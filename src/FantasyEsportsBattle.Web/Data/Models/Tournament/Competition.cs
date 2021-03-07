@@ -15,5 +15,6 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public virtual ICollection<Team> Teams { get; set; }
         public int Priority { get; set; }
         public virtual ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
+        public virtual ICollection<FinishedEvent> FinishedEvents  { get; set; }
     }
 }

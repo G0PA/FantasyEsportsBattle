@@ -29,6 +29,9 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private readonly string _tournamentRankingLink =
             "https://gol.gg/tournament/tournament-ranking/";
+
+        private readonly string _tournamentMatchListLink =
+            "https://gol.gg/tournament/tournament-matchlist/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
         public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
         {
@@ -86,6 +89,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 var tournamentRankings =
                     Client.GetStringAsync(
                         $"{_tournamentRankingLink}{BuildUrlFromName(competition.Name)}/").Result;
+
+                //GetFinishedMatchesForCompetition(competition);
 
                 HtmlDocument teamsDoc = new HtmlDocument();
 
@@ -208,6 +213,21 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             return teams;
         }
 
+        private void GetFinishedMatchesForCompetition(Competition competition)
+        {
+            var tournamentMatches =
+                Client.GetStringAsync(
+                    $"{_tournamentMatchListLink}{BuildUrlFromName(competition.Name)}/").Result;
+
+            var doc = new HtmlDocument();
+
+            doc.LoadHtml(tournamentMatches);
+
+            var table = doc.DocumentNode.SelectSingleNode("//table[contains(@class,'table_list')]");
+
+            var columns = table.SelectNodes(".//tr");
+        }
+
         private void UpdatePlayerForTeam(Team team, Uri uri, string role)
         {
             try
@@ -251,7 +271,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     _dbContext.CompetitionPlayers.Add(player);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 //Log Exception
             }

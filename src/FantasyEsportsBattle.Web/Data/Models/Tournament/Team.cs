@@ -17,5 +17,7 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public int TotalGames { get; set; }
         public float Winrate { get; set; }
         public float AverageGameTime { get; set; }
+        public virtual ICollection<FinishedEvent> HomeTeamFinishedEvents { get; set; }
+        public virtual ICollection<FinishedEvent> AwayTeamFinishedEvents { get; set; }
     }
 }
