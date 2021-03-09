@@ -52,6 +52,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 foreach (var competition in competitions)
                 {
                     var teams = GetTeamsForCompetition(competition);
+
+                    GetFinishedMatchesForCompetition(competition, teams);
                 }
 
                 _dbContext.SaveChanges();
@@ -59,6 +61,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 UpdateDisplayImageIds();
 
                 _dbContext.SaveChanges();
+
+                Console.WriteLine("Parsing Done");
 
                 Thread.Sleep(interval);
             }
@@ -82,6 +86,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private List<Team> GetTeamsForCompetition(Competition competition)
         {
+            Console.WriteLine($"Parsing competition {competition.Name}");
             List<Team> teams = new List<Team>();
 
             try
@@ -89,8 +94,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 var tournamentRankings =
                     Client.GetStringAsync(
                         $"{_tournamentRankingLink}{BuildUrlFromName(competition.Name)}/").Result;
-
-                //GetFinishedMatchesForCompetition(competition);
 
                 HtmlDocument teamsDoc = new HtmlDocument();
 
@@ -213,7 +216,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             return teams;
         }
 
-        private void GetFinishedMatchesForCompetition(Competition competition)
+        private void GetFinishedMatchesForCompetition(Competition competition, List<Team> teams)
         {
             var tournamentMatches =
                 Client.GetStringAsync(
@@ -225,7 +228,47 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             var table = doc.DocumentNode.SelectSingleNode("//table[contains(@class,'table_list')]");
 
-            var columns = table.SelectNodes(".//tr");
+            var columns = table.SelectNodes(".//tr").Where(x => !x.InnerHtml.Contains("> - <")).Skip(1).ToList();
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var currentGame = columns[i].SelectNodes(".//td");
+
+                for (int j = 1; j < currentGame.Count; j++)
+                {
+                    var blueSideTeam = currentGame[1].InnerHtml;
+                    var redSideTeam = currentGame[3].InnerHtml;
+
+                    var score = currentGame[2].InnerHtml.Split("-");
+                    var blueSideTeamScore = int.Parse(score[0].Trim());
+                    var redSideTeamScore = int.Parse(score[1].Trim());
+                    var date = DateTime.Parse(currentGame[6].InnerHtml);
+
+                    var finishedEventFromDb = _dbContext
+                        .FinishedEvents
+                        .FirstOrDefault(t => t.HomeTeam.Name == blueSideTeam
+                                        && t.AwayTeam.Name == redSideTeam
+                                        && t.GameDate == date);
+
+                    if (finishedEventFromDb == null)
+                    {
+                        var homeTeam = teams.FirstOrDefault(t => t.Name == blueSideTeam);
+                        var awayTeam = teams.FirstOrDefault(t => t.Name == redSideTeam);
+
+                        var finishedEvent = new FinishedEvent
+                        {
+                           HomeTeam = homeTeam,
+                           AwayTeam = awayTeam,
+                           Competition = competition,
+                           GameDate = date,
+                           Score1 = blueSideTeamScore,
+                           Score2 = redSideTeamScore,
+                        };
+
+                        _dbContext.FinishedEvents.Add(finishedEvent);
+                    }
+                }
+            }
         }
 
         private void UpdatePlayerForTeam(Team team, Uri uri, string role)

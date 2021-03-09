@@ -42,12 +42,14 @@ namespace FantasyEsportsBattle.Web.Data
             builder.Entity<FinishedEvent>()
                 .HasOne(t => t.HomeTeam)
                 .WithMany(e => e.HomeTeamFinishedEvents)
-                .HasForeignKey(t => t.HomeTeamId);
+                .HasForeignKey(t => t.HomeTeamId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<FinishedEvent>()
                 .HasOne(t => t.AwayTeam)
                 .WithMany(e => e.AwayTeamFinishedEvents)
-                .HasForeignKey(t => t.AwayTeamId);
+                .HasForeignKey(t => t.AwayTeamId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<CompetitionPlayer>()
                 .HasOne(cp => cp.CompetitionPlayerStats)
@@ -60,8 +62,7 @@ namespace FantasyEsportsBattle.Web.Data
 
             builder.Entity<Team>()
                 .HasOne(t => t.Competition)
-                .WithMany(c => c.Teams)
-                .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(c => c.Teams);
 
             builder.Entity<Team>()
                 .HasMany(f => f.HomeTeamFinishedEvents)

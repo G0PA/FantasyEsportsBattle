@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
-    public partial class AddFinishedEventsTable : Migration
+    public partial class AddFinishedEvents : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -26,6 +26,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    AccountType = table.Column<int>(type: "int", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -193,7 +194,10 @@ namespace FantasyEsportsBattle.Web.Migrations
                     DisplayImage = table.Column<int>(type: "int", nullable: false),
                     MaxParticipants = table.Column<int>(type: "int", nullable: false),
                     TournamentHostId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Priority = table.Column<int>(type: "int", nullable: false)
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    TournamentType = table.Column<int>(type: "int", nullable: false),
+                    TournamentAlgorithm = table.Column<int>(type: "int", nullable: false),
+                    TournamentState = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -282,33 +286,32 @@ namespace FantasyEsportsBattle.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TournamentInvitation",
+                name: "TournamentInvitations",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TournamentId = table.Column<int>(type: "int", nullable: false),
                     InvitedUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    InvitationSenderUserId = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    InvitationSenderId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    InvitationSenderUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TournamentInvitation", x => x.Id);
+                    table.PrimaryKey("PK_TournamentInvitations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TournamentInvitation_AspNetUsers_InvitationSenderId",
-                        column: x => x.InvitationSenderId,
+                        name: "FK_TournamentInvitations_AspNetUsers_InvitationSenderUserId",
+                        column: x => x.InvitationSenderUserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TournamentInvitation_AspNetUsers_InvitedUserId",
+                        name: "FK_TournamentInvitations_AspNetUsers_InvitedUserId",
                         column: x => x.InvitedUserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TournamentInvitation_Tournaments_TournamentId",
+                        name: "FK_TournamentInvitations_Tournaments_TournamentId",
                         column: x => x.TournamentId,
                         principalTable: "Tournaments",
                         principalColumn: "Id",
@@ -476,18 +479,18 @@ namespace FantasyEsportsBattle.Web.Migrations
                 column: "CompetitionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentInvitation_InvitationSenderId",
-                table: "TournamentInvitation",
-                column: "InvitationSenderId");
+                name: "IX_TournamentInvitations_InvitationSenderUserId",
+                table: "TournamentInvitations",
+                column: "InvitationSenderUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentInvitation_InvitedUserId",
-                table: "TournamentInvitation",
+                name: "IX_TournamentInvitations_InvitedUserId",
+                table: "TournamentInvitations",
                 column: "InvitedUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentInvitation_TournamentId",
-                table: "TournamentInvitation",
+                name: "IX_TournamentInvitations_TournamentId",
+                table: "TournamentInvitations",
                 column: "TournamentId");
 
             migrationBuilder.CreateIndex(
@@ -529,7 +532,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                 name: "TournamentCompetitions");
 
             migrationBuilder.DropTable(
-                name: "TournamentInvitation");
+                name: "TournamentInvitations");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

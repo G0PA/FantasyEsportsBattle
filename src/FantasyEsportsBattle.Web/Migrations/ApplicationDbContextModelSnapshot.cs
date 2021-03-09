@@ -534,7 +534,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Team", "AwayTeam")
                         .WithMany("AwayTeamFinishedEvents")
                         .HasForeignKey("AwayTeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Competition", "Competition")
@@ -546,7 +546,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.HasOne("FantasyEsportsBattle.Web.Data.Models.Tournament.Team", "HomeTeam")
                         .WithMany("HomeTeamFinishedEvents")
                         .HasForeignKey("HomeTeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("AwayTeam");
@@ -676,7 +676,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Navigation("HostedTournaments");
 
                     b.Navigation("TournamentInvitations");
-
                 });
 
             modelBuilder.Entity("FantasyEsportsBattle.Web.Data.Models.Tournament.Competition", b =>
