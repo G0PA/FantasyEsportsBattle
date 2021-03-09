@@ -234,39 +234,36 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             {
                 var currentGame = columns[i].SelectNodes(".//td");
 
-                for (int j = 1; j < currentGame.Count; j++)
+                var blueSideTeam = currentGame[1].InnerHtml;
+                var redSideTeam = currentGame[3].InnerHtml;
+
+                var score = currentGame[2].InnerHtml.Split("-");
+                var blueSideTeamScore = int.Parse(score[0].Trim());
+                var redSideTeamScore = int.Parse(score[1].Trim());
+                var date = DateTime.Parse(currentGame[6].InnerHtml);
+
+                var finishedEventFromDb = _dbContext
+                    .FinishedEvents
+                    .FirstOrDefault(t => t.HomeTeam.Name == blueSideTeam
+                                    && t.AwayTeam.Name == redSideTeam
+                                    && t.GameDate == date);
+
+                if (finishedEventFromDb == null)
                 {
-                    var blueSideTeam = currentGame[1].InnerHtml;
-                    var redSideTeam = currentGame[3].InnerHtml;
+                    var homeTeam = teams.FirstOrDefault(t => t.Name == blueSideTeam);
+                    var awayTeam = teams.FirstOrDefault(t => t.Name == redSideTeam);
 
-                    var score = currentGame[2].InnerHtml.Split("-");
-                    var blueSideTeamScore = int.Parse(score[0].Trim());
-                    var redSideTeamScore = int.Parse(score[1].Trim());
-                    var date = DateTime.Parse(currentGame[6].InnerHtml);
-
-                    var finishedEventFromDb = _dbContext
-                        .FinishedEvents
-                        .FirstOrDefault(t => t.HomeTeam.Name == blueSideTeam
-                                        && t.AwayTeam.Name == redSideTeam
-                                        && t.GameDate == date);
-
-                    if (finishedEventFromDb == null)
+                    var finishedEvent = new FinishedEvent
                     {
-                        var homeTeam = teams.FirstOrDefault(t => t.Name == blueSideTeam);
-                        var awayTeam = teams.FirstOrDefault(t => t.Name == redSideTeam);
+                        HomeTeam = homeTeam,
+                        AwayTeam = awayTeam,
+                        Competition = competition,
+                        GameDate = date,
+                        Score1 = blueSideTeamScore,
+                        Score2 = redSideTeamScore,
+                    };
 
-                        var finishedEvent = new FinishedEvent
-                        {
-                           HomeTeam = homeTeam,
-                           AwayTeam = awayTeam,
-                           Competition = competition,
-                           GameDate = date,
-                           Score1 = blueSideTeamScore,
-                           Score2 = redSideTeamScore,
-                        };
-
-                        _dbContext.FinishedEvents.Add(finishedEvent);
-                    }
+                    _dbContext.FinishedEvents.Add(finishedEvent);
                 }
             }
         }
