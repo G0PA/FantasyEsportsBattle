@@ -1,7 +1,6 @@
 ﻿using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Host.Data.Models;
-using FantasyEsportsBattle.Host.Enumerations;
 using FantasyEsportsBattle.Web.Enumerations;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -204,13 +203,13 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     }
                     catch (Exception ex)
                     {
-                        //error parsing team
+                        Log.Logger.Error($"Error parsing team for teamLink {teamLink} {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-
+                Log.Logger.Error($"Error parsing competition {competition.Name} {ex.Message}");
             }
 
             return teams;
@@ -313,7 +312,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-                //Log Exception
+                Log.Logger.Error($"Error updating player for team {team.Name} {ex.Message}");
             }
         }
 
@@ -349,7 +348,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 }
                 catch (Exception e)
                 {
-                    Log.Logger.Information($"New Region! Add - {tournament["region"]}");
+                    Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
                     continue;
                 }
                 competition.Name = tournament["trname"].ToString();
@@ -412,7 +411,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-                //NO Image found
+                Log.Logger.Error($"Error adding image {url} {ex.Message}");
             }
 
             return false;
@@ -430,7 +429,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-
+                Log.Logger.Error($"Error creating request to url {url} {ex.Message}");
             }
 
             return null;

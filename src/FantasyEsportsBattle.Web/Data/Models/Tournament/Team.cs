@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using FantasyEsportsBattle.Host.Enumerations;
+using FantasyEsportsBattle.Web.Enumerations;
 
 namespace FantasyEsportsBattle.Web.Data.Models.Tournament
 {
