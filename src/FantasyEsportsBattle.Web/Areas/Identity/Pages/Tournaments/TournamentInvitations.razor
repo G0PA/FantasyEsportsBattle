@@ -16,10 +16,11 @@
 {
     @foreach (var tourneyInvite in User.TournamentInvitations)
     {
-        <div class="mat-elevation-z3">
-            <h3 class="invitation">You are invited To Tournament "@tourneyInvite.Tournament.Name" by "@tourneyInvite.InvitationSenderUser.UserName"</h3>
-            <MatFAB Value="" OnClick="@(_ => TryJoinTournament(tourneyInvite))" Icon="@MatIconNames.Check_circle_outline" Label="JOIN TOURNAMENT"></MatFAB>
-        </div>
+<div class="mat-elevation-z3">
+    <h3 class="invitation">You are invited To Tournament "@tourneyInvite.Tournament.Name" by "@tourneyInvite.InvitationSenderUser.UserName"</h3>
+    <MatFAB Value="" OnClick="@(_ => TryJoinTournament(tourneyInvite))" Icon="@MatIconNames.Check_circle_outline" Label="JOIN TOURNAMENT"></MatFAB>
+    <MatButtonLink Href="@String.Format("/Identity/Tournament/{0}",tourneyInvite.Tournament.Id)" Icon="@MatIconNames.Arrow_forward">VIEW TOURNAMENT</MatButtonLink>
+</div>
     }
 }
 @if (!User.TournamentInvitations.Any())

@@ -22,6 +22,8 @@ namespace FantasyEsportsBattle.Web.Data
         public DbSet<TournamentCompetition> TournamentCompetitions { get; set; }
         public DbSet<FinishedEvent> FinishedEvents { get; set; }
         public DbSet<TournamentInvitation> TournamentInvitations { get; set; }
+        public DbSet<TournamentStats> TournamentStatuses { get; set; }
+        public DbSet<TournamentBoughtPlayer> TournamentBoughtPlayers { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -107,6 +109,11 @@ namespace FantasyEsportsBattle.Web.Data
             builder.Entity<TournamentInvitation>()
                 .HasOne(ti => ti.InvitedUser)
                 .WithMany(u => u.TournamentInvitations);
+
+            builder.Entity<TournamentBoughtPlayer>()
+                .HasOne(t => t.TournamentStats)
+                .WithMany(ts => ts.BoughtPlayers)
+                .HasForeignKey(t => t.TournamentStatsId);
         }
     }
 }
