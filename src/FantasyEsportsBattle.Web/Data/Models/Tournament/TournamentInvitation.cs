@@ -14,6 +14,5 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public virtual ApplicationUser InvitedUser { get; set; }
         public string InvitationSenderUserId { get; set; }
         public virtual ApplicationUser InvitationSenderUser { get; set; }
-
     }
 }

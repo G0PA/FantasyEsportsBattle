@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
-    public partial class RenamedPlayerTables : Migration
+    public partial class AddFinishedEvents : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -26,6 +26,7 @@ namespace FantasyEsportsBattle.Web.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    AccountType = table.Column<int>(type: "int", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -74,23 +75,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Images", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Tournaments",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DisplayImage = table.Column<int>(type: "int", nullable: false),
-                    MaxParticipants = table.Column<int>(type: "int", nullable: false),
-                    Priority = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Tournaments", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -200,6 +184,33 @@ namespace FantasyEsportsBattle.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Tournaments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DisplayImage = table.Column<int>(type: "int", nullable: false),
+                    MaxParticipants = table.Column<int>(type: "int", nullable: false),
+                    TournamentHostId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    TournamentType = table.Column<int>(type: "int", nullable: false),
+                    TournamentAlgorithm = table.Column<int>(type: "int", nullable: false),
+                    TournamentState = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tournaments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Tournaments_AspNetUsers_TournamentHostId",
+                        column: x => x.TournamentHostId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Teams",
                 columns: table => new
                 {
@@ -275,7 +286,40 @@ namespace FantasyEsportsBattle.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TournamentPlayers",
+                name: "TournamentInvitations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TournamentId = table.Column<int>(type: "int", nullable: false),
+                    InvitedUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    InvitationSenderUserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TournamentInvitations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TournamentInvitations_AspNetUsers_InvitationSenderUserId",
+                        column: x => x.InvitationSenderUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TournamentInvitations_AspNetUsers_InvitedUserId",
+                        column: x => x.InvitedUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TournamentInvitations_Tournaments_TournamentId",
+                        column: x => x.TournamentId,
+                        principalTable: "Tournaments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CompetitionPlayers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -288,9 +332,9 @@ namespace FantasyEsportsBattle.Web.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TournamentPlayers", x => x.Id);
+                    table.PrimaryKey("PK_CompetitionPlayers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TournamentPlayers_Teams_TeamId",
+                        name: "FK_CompetitionPlayers_Teams_TeamId",
                         column: x => x.TeamId,
                         principalTable: "Teams",
                         principalColumn: "Id",
@@ -298,7 +342,43 @@ namespace FantasyEsportsBattle.Web.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TournamentPlayerStatuses",
+                name: "FinishedEvents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CompetitionId = table.Column<int>(type: "int", nullable: false),
+                    HomeTeamId = table.Column<int>(type: "int", nullable: false),
+                    AwayTeamId = table.Column<int>(type: "int", nullable: false),
+                    GameDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Score1 = table.Column<int>(type: "int", nullable: false),
+                    Score2 = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FinishedEvents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_FinishedEvents_Competitions_CompetitionId",
+                        column: x => x.CompetitionId,
+                        principalTable: "Competitions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_FinishedEvents_Teams_AwayTeamId",
+                        column: x => x.AwayTeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_FinishedEvents_Teams_HomeTeamId",
+                        column: x => x.HomeTeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CompetitionPlayerStatuses",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -309,11 +389,11 @@ namespace FantasyEsportsBattle.Web.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TournamentPlayerStatuses", x => x.Id);
+                    table.PrimaryKey("PK_CompetitionPlayerStatuses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TournamentPlayerStatuses_TournamentPlayers_CompetitionPlayerId",
+                        name: "FK_CompetitionPlayerStatuses_CompetitionPlayers_CompetitionPlayerId",
                         column: x => x.CompetitionPlayerId,
-                        principalTable: "TournamentPlayers",
+                        principalTable: "CompetitionPlayers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -363,6 +443,32 @@ namespace FantasyEsportsBattle.Web.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CompetitionPlayers_TeamId",
+                table: "CompetitionPlayers",
+                column: "TeamId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CompetitionPlayerStatuses_CompetitionPlayerId",
+                table: "CompetitionPlayerStatuses",
+                column: "CompetitionPlayerId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinishedEvents_AwayTeamId",
+                table: "FinishedEvents",
+                column: "AwayTeamId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinishedEvents_CompetitionId",
+                table: "FinishedEvents",
+                column: "CompetitionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FinishedEvents_HomeTeamId",
+                table: "FinishedEvents",
+                column: "HomeTeamId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Teams_CompetitionId",
                 table: "Teams",
                 column: "CompetitionId");
@@ -373,15 +479,24 @@ namespace FantasyEsportsBattle.Web.Migrations
                 column: "CompetitionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentPlayers_TeamId",
-                table: "TournamentPlayers",
-                column: "TeamId");
+                name: "IX_TournamentInvitations_InvitationSenderUserId",
+                table: "TournamentInvitations",
+                column: "InvitationSenderUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TournamentPlayerStatuses_CompetitionPlayerId",
-                table: "TournamentPlayerStatuses",
-                column: "CompetitionPlayerId",
-                unique: true);
+                name: "IX_TournamentInvitations_InvitedUserId",
+                table: "TournamentInvitations",
+                column: "InvitedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TournamentInvitations_TournamentId",
+                table: "TournamentInvitations",
+                column: "TournamentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tournaments_TournamentHostId",
+                table: "Tournaments",
+                column: "TournamentHostId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -405,28 +520,34 @@ namespace FantasyEsportsBattle.Web.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "CompetitionPlayerStatuses");
+
+            migrationBuilder.DropTable(
+                name: "FinishedEvents");
+
+            migrationBuilder.DropTable(
                 name: "Images");
 
             migrationBuilder.DropTable(
                 name: "TournamentCompetitions");
 
             migrationBuilder.DropTable(
-                name: "TournamentPlayerStatuses");
+                name: "TournamentInvitations");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "CompetitionPlayers");
 
             migrationBuilder.DropTable(
                 name: "Tournaments");
 
             migrationBuilder.DropTable(
-                name: "TournamentPlayers");
+                name: "Teams");
 
             migrationBuilder.DropTable(
-                name: "Teams");
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
                 name: "Competitions");

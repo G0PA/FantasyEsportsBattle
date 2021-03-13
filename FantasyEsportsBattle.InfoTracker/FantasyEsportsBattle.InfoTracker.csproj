@@ -8,9 +8,15 @@
   <ItemGroup>
     <None Remove="appsettings.Development.json" />
     <None Remove="appsettings.json" />
+    <None Remove="appsettings.Production.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Include="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
@@ -39,6 +45,10 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\..\..\Microsoft\Xamarin\NuGet\newtonsoft.json\11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="log\" />
   </ItemGroup>
 
 </Project>

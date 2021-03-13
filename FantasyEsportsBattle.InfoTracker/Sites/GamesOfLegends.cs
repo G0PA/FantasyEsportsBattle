@@ -1,7 +1,6 @@
 ﻿using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Host.Data.Models;
-using FantasyEsportsBattle.Host.Enumerations;
 using FantasyEsportsBattle.Web.Enumerations;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -29,6 +28,9 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private readonly string _tournamentRankingLink =
             "https://gol.gg/tournament/tournament-ranking/";
+
+        private readonly string _tournamentMatchListLink =
+            "https://gol.gg/tournament/tournament-matchlist/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
         public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
         {
@@ -49,6 +51,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 foreach (var competition in competitions)
                 {
                     var teams = GetTeamsForCompetition(competition);
+
+                    GetFinishedMatchesForCompetition(competition, teams);
                 }
 
                 _dbContext.SaveChanges();
@@ -56,6 +60,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 UpdateDisplayImageIds();
 
                 _dbContext.SaveChanges();
+
+                Console.WriteLine("Parsing Done");
 
                 Thread.Sleep(interval);
             }
@@ -79,6 +85,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
         private List<Team> GetTeamsForCompetition(Competition competition)
         {
+            Console.WriteLine($"Parsing competition {competition.Name}");
             List<Team> teams = new List<Team>();
 
             try
@@ -196,16 +203,68 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     }
                     catch (Exception ex)
                     {
-                        //error parsing team
+                        Log.Logger.Error($"Error parsing team for teamLink {teamLink} {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-
+                Log.Logger.Error($"Error parsing competition {competition.Name} {ex.Message}");
             }
 
             return teams;
+        }
+
+        private void GetFinishedMatchesForCompetition(Competition competition, List<Team> teams)
+        {
+            var tournamentMatches =
+                Client.GetStringAsync(
+                    $"{_tournamentMatchListLink}{BuildUrlFromName(competition.Name)}/").Result;
+
+            var doc = new HtmlDocument();
+
+            doc.LoadHtml(tournamentMatches);
+
+            var table = doc.DocumentNode.SelectSingleNode("//table[contains(@class,'table_list')]");
+
+            var columns = table.SelectNodes(".//tr").Where(x => !x.InnerHtml.Contains("> - <")).Skip(1).ToList();
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var currentGame = columns[i].SelectNodes(".//td");
+
+                var blueSideTeam = currentGame[1].InnerHtml;
+                var redSideTeam = currentGame[3].InnerHtml;
+
+                var score = currentGame[2].InnerHtml.Split("-");
+                var blueSideTeamScore = int.Parse(score[0].Trim());
+                var redSideTeamScore = int.Parse(score[1].Trim());
+                var date = DateTime.Parse(currentGame[6].InnerHtml);
+
+                var finishedEventFromDb = _dbContext
+                    .FinishedEvents
+                    .FirstOrDefault(t => t.HomeTeam.Name == blueSideTeam
+                                    && t.AwayTeam.Name == redSideTeam
+                                    && t.GameDate == date);
+
+                if (finishedEventFromDb == null)
+                {
+                    var homeTeam = teams.FirstOrDefault(t => t.Name == blueSideTeam);
+                    var awayTeam = teams.FirstOrDefault(t => t.Name == redSideTeam);
+
+                    var finishedEvent = new FinishedEvent
+                    {
+                        HomeTeam = homeTeam,
+                        AwayTeam = awayTeam,
+                        Competition = competition,
+                        GameDate = date,
+                        Score1 = blueSideTeamScore,
+                        Score2 = redSideTeamScore,
+                    };
+
+                    _dbContext.FinishedEvents.Add(finishedEvent);
+                }
+            }
         }
 
         private void UpdatePlayerForTeam(Team team, Uri uri, string role)
@@ -251,9 +310,9 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     _dbContext.CompetitionPlayers.Add(player);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                //Log Exception
+                Log.Logger.Error($"Error updating player for team {team.Name} {ex.Message}");
             }
         }
 
@@ -289,7 +348,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 }
                 catch (Exception e)
                 {
-                    Log.Logger.Information($"New Region! Add - {tournament["region"]}");
+                    Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
                     continue;
                 }
                 competition.Name = tournament["trname"].ToString();
@@ -352,7 +411,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-                //NO Image found
+                Log.Logger.Error($"Error adding image {url} {ex.Message}");
             }
 
             return false;
@@ -370,7 +429,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
             catch (Exception ex)
             {
-
+                Log.Logger.Error($"Error creating request to url {url} {ex.Message}");
             }
 
             return null;

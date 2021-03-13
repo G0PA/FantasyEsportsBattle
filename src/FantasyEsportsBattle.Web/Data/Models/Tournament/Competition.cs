@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FantasyEsportsBattle.Host.Enumerations;
+using FantasyEsportsBattle.Web.Enumerations;
 
 namespace FantasyEsportsBattle.Web.Data.Models.Tournament
 {
@@ -15,5 +15,6 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public virtual ICollection<Team> Teams { get; set; }
         public int Priority { get; set; }
         public virtual ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
+        public virtual ICollection<FinishedEvent> FinishedEvents  { get; set; }
     }
 }

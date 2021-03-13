@@ -20,7 +20,9 @@ namespace FantasyEsportsBattle.Web.Data
         public DbSet<CompetitionPlayerStats> CompetitionPlayerStatuses { get; set; }
         public DbSet<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public DbSet<TournamentCompetition> TournamentCompetitions { get; set; }
+        public DbSet<FinishedEvent> FinishedEvents { get; set; }
         public DbSet<TournamentInvitation> TournamentInvitations { get; set; }
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -37,6 +39,18 @@ namespace FantasyEsportsBattle.Web.Data
         {
             base.OnModelCreating(builder);
 
+            builder.Entity<FinishedEvent>()
+                .HasOne(t => t.HomeTeam)
+                .WithMany(e => e.HomeTeamFinishedEvents)
+                .HasForeignKey(t => t.HomeTeamId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<FinishedEvent>()
+                .HasOne(t => t.AwayTeam)
+                .WithMany(e => e.AwayTeamFinishedEvents)
+                .HasForeignKey(t => t.AwayTeamId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<CompetitionPlayer>()
                 .HasOne(cp => cp.CompetitionPlayerStats)
                 .WithOne(p => p.CompetitionPlayer)
@@ -49,6 +63,14 @@ namespace FantasyEsportsBattle.Web.Data
             builder.Entity<Team>()
                 .HasOne(t => t.Competition)
                 .WithMany(c => c.Teams);
+
+            builder.Entity<Team>()
+                .HasMany(f => f.HomeTeamFinishedEvents)
+                .WithOne(t => t.HomeTeam);
+
+            builder.Entity<Team>()
+                .HasMany(f => f.AwayTeamFinishedEvents)
+                .WithOne(t => t.AwayTeam);
 
             builder.Entity<ApplicationUserTournament>().HasKey(appUserTournament =>
                 new {appUserTournament.TournamentId, appUserTournament.ApplicationUserId});

@@ -21,7 +21,7 @@ namespace FantasyEsportsBattle.InfoTracker
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Build())
                 .Enrich.FromLogContext()
-                .WriteTo.File(@"log/logRegions.txt", rollingInterval: RollingInterval.Day)
+                .WriteTo.File(@"log/logErrors.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
             var configuration = builder.Build();
@@ -33,12 +33,18 @@ namespace FantasyEsportsBattle.InfoTracker
             if (defaultImg == null)
             {
                 var img = new Host.Data.Models.Image
-                { 
-                    ImageTitle = "DefaultImage" 
+                {
+                    ImageTitle = "DefaultImage"
                 };
 
                 img.ImageData = File.ReadAllBytes("default.png");
                 context.Images.Add(img);
+                context.SaveChanges();
+            }
+            else if (defaultImg.ImageData == null)
+            {
+                
+                defaultImg.ImageData = File.ReadAllBytes("default.png");
                 context.SaveChanges();
             }
 
