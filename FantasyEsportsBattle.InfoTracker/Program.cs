@@ -21,7 +21,7 @@ namespace FantasyEsportsBattle.InfoTracker
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Build())
                 .Enrich.FromLogContext()
-                .WriteTo.File(@"log/logErrors.txt", rollingInterval: RollingInterval.Day)
+                .WriteTo.File(@"log/logErrors.txt", rollingInterval: RollingInterval.Day, fileSizeLimitBytes: 2000_0000, retainedFileCountLimit: 20)
                 .CreateLogger();
 
             var configuration = builder.Build();
