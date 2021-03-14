@@ -20,7 +20,7 @@ namespace FantasyEsportsBattle.Web.Extensions
                 }
             }
 
-            return 0;
+            return StartingPoints;
         }
     }
 }

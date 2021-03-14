@@ -6,7 +6,6 @@
 @using FantasyEsportsBattle.Web.Data
 
 <style>
-    <style >
     .host {
         color: red !important;
         font-family: serif
@@ -34,36 +33,7 @@
 
 <AuthorizeView>
     <Authorized>
-                <MatNavMenu @ref="navMenu">
-                    <MatNavSubMenu>
-                        <MatNavSubMenuHeader Title="@PlayersInTournamentTitle">
-                            <MatNavItem AllowSelection="false">
-                                <MatIcon Icon="" />&nbsp;@PlayersInTournamentTitle
-                            </MatNavItem>
-                        </MatNavSubMenuHeader>
-
-                        <MatNavSubMenuList>
-                            @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser == Tournament.TournamentHost))
-                            {
-                                <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="host">  (HOST)</h4></MatNavItem>
-                            }
-                            @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser != Tournament.TournamentHost))
-                            {
-                                <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="inTournament">  (IN TOURNAMENT)</h4></MatNavItem>
-                            }
-
-                            <h2 class="playerList"></h2>
-                            @if (Tournament.TournamentInvitations != null)
-                            {
-                                @foreach (var user in Tournament.TournamentInvitations)
-                                {
-                                    <MatNavItem Class="playerList" AllowSelection="false"><h4 class="text">@user.InvitedUser.UserName    </h4><h4 class="invited">  (PENDING INVITE)</h4></MatNavItem>
-                                }
-                            }
-                        </MatNavSubMenuList>
-
-                    </MatNavSubMenu>
-                </MatNavMenu>
+                
         </Authorized>
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>

@@ -14,6 +14,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
 
     class GamesOfLegends : Site
     {
@@ -290,11 +291,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     return;
                 }
 
-                if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
-                {
-                    return;
-                }
-
                 var player = exists
                     ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
                     : new CompetitionPlayer();
@@ -304,6 +300,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 player.Nickname = playerName;
 
                 Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
+
+                PopulatePlayerStats(doc,player);
 
                 if (!exists)
                 {
@@ -315,6 +313,158 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 Log.Logger.Error($"Error updating player for team {team.Name} {ex.Message}");
             }
         }
+
+        private void PopulatePlayerStats(HtmlDocument doc, CompetitionPlayer player)
+        {
+            var tables = doc.DocumentNode.SelectNodes("//table[contains(@class,'table_list')]");
+
+            if (tables == null)
+            {
+                return;
+            }
+
+            List<Task> tasks = new List<Task>();
+
+            foreach (var table in tables)
+            {
+                try
+                {
+                    if (table.InnerText.Contains("General stats"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Record") && columns[i + 1].InnerText != "-")
+                                {
+                                    var winrateArr = columns[i + 1].InnerText.Replace("W", "").Replace("L", "").Split(" - ");
+                                    var wins = int.Parse(winrateArr[0].Trim());
+                                    var losses = int.Parse(winrateArr[1].Trim());
+                                    player.Wins = wins;
+                                    player.Losses = losses;
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("KDA") && columns[i + 1].InnerText != "-")
+                                {
+                                    try
+                                    {
+                                        player.KDA = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    }
+                                    catch
+                                    {
+
+                                    }
+                                }
+                                if (columns[i].InnerText.Contains("CS per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.CSPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold%") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GoldPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Kill Participation") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.KillParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Early game"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Ahead in CS at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    var percentString = columns[i + 1].InnerText.Replace("%", "").Replace(".", ",").Trim().Replace("&nbsp;", "").Trim();
+                                    player.AheadInCSAt15MinPercent = float.Parse(percentString);
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("CS Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.CSDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GoldDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("XP Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.XPDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("First Blood Participation") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.FirstBloodParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("First Blood Victim") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.FirstBloodVictimPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Aggression"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Damage Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.DamagePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Damage%") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.DamagePercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Vision"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Vision score Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.VisionScorePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error($"Error parsing Player column! PlayerName: {player.Nickname}", ex);
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray());
+        }
+                
 
         private List<Competition> GetCompetitions()
         {
