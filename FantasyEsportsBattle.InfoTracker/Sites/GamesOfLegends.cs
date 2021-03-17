@@ -51,9 +51,16 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 foreach (var competition in competitions)
                 {
-                    var teams = GetTeamsForCompetition(competition);
+                    try
+                    {
+                        var teams = GetTeamsForCompetition(competition);
 
-                    GetFinishedMatchesForCompetition(competition, teams);
+                        GetFinishedMatchesForCompetition(competition, teams);
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Logger.Error($"Error parsing teams or finished matches",ex);
+                    }
                 }
 
                 _dbContext.SaveChanges();
@@ -343,6 +350,13 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                     var losses = int.Parse(winrateArr[1].Trim());
                                     player.Wins = wins;
                                     player.Losses = losses;
+
+                                    if (wins + losses > 0)
+                                    {
+                                        var winrate = (int)(((double)wins / (double)(wins + losses)) * 100);
+                                        player.Winrate = winrate;
+                                    }
+
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("KDA") && columns[i + 1].InnerText != "-")
@@ -486,44 +500,50 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             foreach (var tournament in responseJson)
             {
-                var competitionName = tournament["trname"].ToString();
-
-                var exists = _dbContext.Competitions.Any(c => c.Name == competitionName);
-
-                var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
-
                 try
                 {
-                    competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
-                }
-                catch (Exception e)
+                    var competitionName = tournament["trname"].ToString();
+
+                    var exists = _dbContext.Competitions.Any(c => c.Name == competitionName);
+
+                    var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
+
+                    try
+                    {
+                        competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
+                        continue;
+                    }
+                    competition.Name = tournament["trname"].ToString();
+
+                    var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
+
+                    var html = Client.GetStringAsync(uri).Result;
+
+                    HtmlDocument doc = new HtmlDocument();
+
+                    doc.LoadHtml(html);
+
+                    var tournamentAlias = doc.DocumentNode
+                        .SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
+                        .SelectSingleNode("//span[contains(@class,'navbar-brand')]").InnerText.Split(' ')[0];
+
+                    var url = $"{_leagueIconLink}{tournamentAlias}";
+
+                    AddImageToDb(url, competition.Name);
+
+                    competitions.Add(competition);
+
+                    if (!exists)
+                    {
+                        _dbContext.Competitions.Add(competition);
+                    }
+                }catch(Exception ex)
                 {
-                    Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
-                    continue;
-                }
-                competition.Name = tournament["trname"].ToString();
-
-                var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
-
-                var html = Client.GetStringAsync(uri).Result;
-
-                HtmlDocument doc = new HtmlDocument();
-
-                doc.LoadHtml(html);
-
-                var tournamentAlias = doc.DocumentNode
-                    .SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
-                    .SelectSingleNode("//span[contains(@class,'navbar-brand')]").InnerText.Split(' ')[0];
-
-                var url = $"{_leagueIconLink}{tournamentAlias}";
-
-                AddImageToDb(url, competition.Name);
-
-                competitions.Add(competition);
-
-                if (!exists)
-                {
-                    _dbContext.Competitions.Add(competition);
+                    Log.Logger.Error($"Error parsing competition", ex);
                 }
             }
 

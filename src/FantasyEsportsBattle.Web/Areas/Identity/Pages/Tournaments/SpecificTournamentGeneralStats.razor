@@ -33,8 +33,40 @@
 
 <AuthorizeView>
     <Authorized>
-                
-        </Authorized>
+        <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(true))">Expand All</MatButton>
+        <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(false))">Collapse All</MatButton>
+
+        <MatNavMenu @ref="navMenu">
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader Title="@PlayersInTournamentTitle">
+                    <MatNavItem AllowSelection="false">
+                        <MatIcon Icon="assignment_ind" />&nbsp;@PlayersInTournamentTitle
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+
+                <MatNavSubMenuList>
+                    @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser == Tournament.TournamentHost))
+                    {
+                        <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="host">  (HOST)</h4></MatNavItem>
+                    }
+                    @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser != Tournament.TournamentHost))
+                    {
+                        <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="inTournament">  (IN TOURNAMENT)</h4></MatNavItem>
+                    }
+
+                    <h2 class="playerList"></h2>
+                    @if (Tournament.TournamentInvitations != null)
+                    {
+                        @foreach (var user in Tournament.TournamentInvitations)
+                        {
+                            <MatNavItem Class="playerList" AllowSelection="false"><h4 class="text">@user.InvitedUser.UserName    </h4><h4 class="invited">  (PENDING INVITE)</h4></MatNavItem>
+                        }
+                    }
+                </MatNavSubMenuList>
+
+            </MatNavSubMenu>
+        </MatNavMenu>
+    </Authorized>
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>
     </NotAuthorized>
@@ -46,6 +78,14 @@
     public string TournamentId { get; set; }
     public Tournament Tournament { get; set; }
     public bool IsTournamentHost { get; set; }
+    public List<ApplicationUser> UsersInTournament { get; set; }
+    public string PlayersInTournamentTitle
+    {
+        get
+        {
+            return String.Format("Players In Tournament {0}/{1}", UsersInTournament.Count, Tournament.MaxParticipants);
+        }
+    }
     public bool IsFormDisabled
     {
         get
@@ -68,22 +108,8 @@
 
         Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
 
+        UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+
         IsTournamentHost = Tournament.TournamentHost.Id == userId;
-
-        var allTeams = Tournament.TournamentCompetitions.Select(tc => tc.Competition).Select(c => c.Teams).ToList();
-
-        foreach(var teamCollection in allTeams.Select(at => at))
-        {
-            foreach(var team in teamCollection)
-            {
-                foreach(var player in team.Players)
-                {
-                    PlayersInTournament.Add(player,0);
-                }
-            }
-        }
-
-        PlayersInTournament.OrderByDescending(kv => kv.Value);
-
     }
 }

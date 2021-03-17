@@ -4,6 +4,7 @@
 @using FantasyEsportsBattle.Web.Data.Models
 @using FantasyEsportsBattle.Web.Data.Models.Tournament
 @using FantasyEsportsBattle.Web.Data
+@using FantasyEsportsBattle.Web.Extensions 
 
 <style>
     .host {
@@ -33,40 +34,12 @@
 
 <AuthorizeView>
     <Authorized>
-            <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(true))">Expand All</MatButton>
-            <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(false))">Collapse All</MatButton>
-
-                <MatNavMenu @ref="navMenu">
-                    <MatNavSubMenu>
-                        <MatNavSubMenuHeader Title="@PlayersInTournamentTitle">
-                            <MatNavItem AllowSelection="false">
-                                <MatIcon Icon="assignment_ind" />&nbsp;@PlayersInTournamentTitle
-                            </MatNavItem>
-                        </MatNavSubMenuHeader>
-
-                        <MatNavSubMenuList>
-                            @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser == Tournament.TournamentHost))
-                            {
-                                <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="host">  (HOST)</h4></MatNavItem>
-                            }
-                            @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser != Tournament.TournamentHost))
-                            {
-                                <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="inTournament">  (IN TOURNAMENT)</h4></MatNavItem>
-                            }
-
-                            <h2 class="playerList"></h2>
-                            @if (Tournament.TournamentInvitations != null)
-                            {
-                                @foreach (var user in Tournament.TournamentInvitations)
-                                {
-                                    <MatNavItem Class="playerList" AllowSelection="false"><h4 class="text">@user.InvitedUser.UserName    </h4><h4 class="invited">  (PENDING INVITE)</h4></MatNavItem>
-                                }
-                            }
-                        </MatNavSubMenuList>
-
-                    </MatNavSubMenu>
-                </MatNavMenu>
-        </Authorized>
+        @foreach (var player in OrderedPlayers)
+        {
+            <h3 class="mat-subtitle1">@GetPlayerNameAndPoints(player)</h3>
+            <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
+        }
+    </Authorized>
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>
     </NotAuthorized>
@@ -77,6 +50,7 @@
     [Parameter]
     public string TournamentId { get; set; }
     public Tournament Tournament { get; set; }
+    public Dictionary<CompetitionPlayer,float> OrderedPlayers { get; set; }
     List<ApplicationUser> UsersInTournament { get; set; }
     public bool IsTournamentHost { get; set; }
     public bool IsFormDisabled
@@ -91,13 +65,6 @@
     public bool IsPlayerAlreadyInTournament { get; set; }
     public string InvitedUser { get; set; }
     public ApplicationUser User { get; set; }
-    public string PlayersInTournamentTitle
-    {
-        get
-        {
-            return String.Format("Players In Tournament {0}/{1}", UsersInTournament.Count, Tournament.MaxParticipants);
-        }
-    }
 
     MatNavMenu navMenu;
 
@@ -113,5 +80,19 @@
 
         IsTournamentHost = Tournament.TournamentHost.Id == userId;
         UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+        OrderedPlayers = Tournament.CalculatePointsForAllPlayers();
+    }
+
+    private float CalculateProgressBarValue(float playerPoints)
+    {
+        var maxPoints = TournamentExtensions.GetMaxPoints();
+        var onePercent = (float) (maxPoints) / 100;
+
+        return (playerPoints / onePercent) /100;
+    }
+
+    private string GetPlayerNameAndPoints(KeyValuePair<CompetitionPlayer,float> player)
+    {
+        return $"{player.Key.Nickname} ({player.Value.ToString("F2")})";
     }
 }

@@ -80,8 +80,8 @@
             <MatTab Class="Tabs" Label="General Stats">
                 <SpecificTournamentGeneralStats TournamentId="@TournamentId" />
             </MatTab>
-            <MatTab Class="Tabs" Label="My Team">
-
+            <MatTab Class="Tabs" Label="Team Builder">
+                <SpecificTournamentTeamBuilder TournamentId="@TournamentId"/>
             </MatTab>
             <MatTab Class="Tabs" Label="Participants & Ladder">
 
@@ -238,6 +238,9 @@
 
     public void BeginTournament()
     {
+        Tournament.TournamentState = Enumerations.TournamentState.Started;
         IsTournamentStartSuccessful = true;
+        dbContext.SaveChanges();
+        StateHasChanged();
     }
 }
