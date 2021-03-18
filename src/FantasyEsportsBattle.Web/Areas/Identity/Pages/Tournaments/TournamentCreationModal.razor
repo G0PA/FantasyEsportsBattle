@@ -24,9 +24,12 @@
         <MatSelect @bind-Value="@AlgorithmTypeVal" TValue="string" Label="Algorithm Type">
             @foreach (var algorithmType in Enum.GetValues(typeof(TournamentAlgorithm)).Cast<TournamentAlgorithm>())
             {
-                    <MatOptionString Value="@algorithmType.ToString()">@algorithmType</MatOptionString>
+                <MatOptionString Value="@algorithmType.ToString()">@algorithmType</MatOptionString>
             }
         </MatSelect>
+        <h4>Starting Gold</h4>
+        <MatSlider TValue="decimal" ValueMin="@GoldMin" ValueMax="@GoldMax" @bind-Value="@Gold" EnableStep="true" Markers="true" Step="1" Pin="true" Discrete="true"></MatSlider>
+        <h5>@Gold</h5>
         <h3>Tournament Size: </h3>
         <MatSlider TValue="decimal" ValueMin="@ValueMin" ValueMax="@ValueMax" @bind-Value="@Value" EnableStep="true" Markers="true" Step="1" Pin="true" Discrete="true"></MatSlider>
         <h4>@Value</h4>
@@ -87,6 +90,9 @@
     public bool IsTournamentCreatedFailed { get; set; }
     public decimal ValueMin { get; set; } = 2;
     public decimal ValueMax { get; set; } = 8;
+    public decimal GoldMin { get; set; } = 300;
+    public decimal GoldMax { get; set; } = 600;
+    public decimal Gold { get; set; }
     public ApplicationUser User { get; set; }
 
     [Parameter] public EventCallback OnStateChanged { get; set; }
@@ -129,7 +135,7 @@
     public async Task CreateTournament()
     {
         var user = await AuthProvider.GetAuthenticationStateAsync();
-        var isTourneyCreated = TourneyService.OnCreateTournament(CheckedCompetitions, TournamentName, (int) Value, user.User,(TournamentType)Enum.Parse(typeof(TournamentType),TournamentTypeVal), (TournamentAlgorithm) Enum.Parse(typeof(TournamentAlgorithm),AlgorithmTypeVal));
+        var isTourneyCreated = TourneyService.OnCreateTournament(CheckedCompetitions, TournamentName, (int) Value, user.User,(TournamentType)Enum.Parse(typeof(TournamentType),TournamentTypeVal), (TournamentAlgorithm) Enum.Parse(typeof(TournamentAlgorithm),AlgorithmTypeVal),(float)Gold);
         if (isTourneyCreated)
         {
             IsTournamentCreated = true;

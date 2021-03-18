@@ -13,6 +13,7 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public DateTime StartTime { get; set; }
         public int DisplayImage { get; set; }
         public int MaxParticipants { get; set; }
+        public float StartingCurrency { get; set; }
         public virtual ICollection<TournamentCompetition> TournamentCompetitions { get; set; }
         public virtual ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public virtual ICollection<TournamentInvitation> TournamentInvitations { get; set; }

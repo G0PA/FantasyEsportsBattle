@@ -30,15 +30,56 @@
     .playerList {
         margin-top: 3%;
     }
+
+    .buyPlayer {
+        right: 3%;
+        position: absolute;
+    }
 </style>
 
 <AuthorizeView>
     <Authorized>
         @foreach (var player in OrderedPlayers)
         {
+            <MatFAB Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatFAB>
             <h3 class="mat-subtitle1">@GetPlayerNameAndPoints(player)</h3>
+
             <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
         }
+
+        <MatDialog @bind-IsOpen="@IsBuyPlayerFormOpen">
+            <MatDialogContent>
+                <MatDialogTitle>@SelectedPlayer.Key.Nickname [@SelectedPlayer.Key.Role] (@SelectedPlayer.Value.ToString("F2"))</MatDialogTitle>
+                <h5>Winrate: @SelectedPlayer.Key.Winrate %(@SelectedPlayer.Key.Wins - @SelectedPlayer.Key.Losses)</h5>
+                <h5>KDA: @SelectedPlayer.Key.KDA</h5>
+                <h5>CS Per Minute: @SelectedPlayer.Key.CSPM</h5>
+                <h5>Gold Per Minute: @SelectedPlayer.Key.GPM</h5>
+                <h5>Ahead In CS At 15:00 Percent: @SelectedPlayer.Key.AheadInCSAt15MinPercent %</h5>
+                <h5>Kill Participation Percent: @SelectedPlayer.Key.KillParticipationPercent %</h5>
+                <h5>CS Difference At 15:00: @SelectedPlayer.Key.CSDifferenceAt15Min </h5>
+                <h5>Gold Difference At 15:00: @SelectedPlayer.Key.GoldDifferenceAt15Min </h5>
+                <h5>XP Difference At 15:00: @SelectedPlayer.Key.XPDifferenceAt15Min </h5>
+                <h5>Damage Percent: @SelectedPlayer.Key.DamagePercent %</h5>
+                <h5>VisionScorePerMinute: @SelectedPlayer.Key.VisionScorePerMinute</h5>
+                <MatDialogActions>
+                    <MatButton OnClick="@TryBuyPlayer">Buy</MatButton>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })">Exit</MatButton>
+                </MatDialogActions>
+            </MatDialogContent>
+            <MatSnackbar @bind-IsOpen="@PlayerBoughtSuccess">
+                <MatSnackbarContent>Player Bought Successfully! New Gold balance is @UserTournamentStats.Currency</MatSnackbarContent>
+                <MatSnackbarActions>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })" Raised="true">OK</MatButton>
+                </MatSnackbarActions>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@NotEnoughGold">
+                <MatSnackbarContent>Player Invite failed. You do not have enough Gold</MatSnackbarContent>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@PlayerAlreadyBought">
+                <MatSnackbarContent>You already have @SelectedPlayer.Key.Nickname in your roster</MatSnackbarContent>
+            </MatSnackbar>
+        </MatDialog>
+
     </Authorized>
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>
@@ -64,8 +105,13 @@
     public bool IsPlayerAlreadyInvited { get; set; }
     public bool IsPlayerAlreadyInTournament { get; set; }
     public string InvitedUser { get; set; }
+    public KeyValuePair<CompetitionPlayer, float> SelectedPlayer { get; set; } = new KeyValuePair<CompetitionPlayer, float>(new CompetitionPlayer(),0);
     public ApplicationUser User { get; set; }
-
+    public TournamentStats UserTournamentStats { get; set; }
+    public bool IsBuyPlayerFormOpen { get; set; }
+    public bool PlayerAlreadyBought { get; set; }
+    public bool NotEnoughGold { get; set; }
+    public bool PlayerBoughtSuccess { get; set; }
     MatNavMenu navMenu;
 
     protected override async Task OnInitializedAsync()
@@ -81,6 +127,7 @@
         IsTournamentHost = Tournament.TournamentHost.Id == userId;
         UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
         OrderedPlayers = Tournament.CalculatePointsForAllPlayers();
+        UserTournamentStats = User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament);
     }
 
     private float CalculateProgressBarValue(float playerPoints)
@@ -93,6 +140,39 @@
 
     private string GetPlayerNameAndPoints(KeyValuePair<CompetitionPlayer,float> player)
     {
-        return $"{player.Key.Nickname} ({player.Value.ToString("F2")})";
+        return $"{player.Key.Nickname}[{player.Key.Role}] ({player.Value.ToString("F2")})";
+    }
+
+    private void OnClickBuy(KeyValuePair<CompetitionPlayer,float> player)
+    {
+        SelectedPlayer = player;
+        IsBuyPlayerFormOpen = true;
+    }
+    private void TryBuyPlayer()
+    {
+        if(UserTournamentStats.BoughtPlayers.Any(p => p.CompetitionPlayer == SelectedPlayer.Key))
+        {
+            PlayerAlreadyBought = true;
+        }
+        else if(UserTournamentStats.Currency < SelectedPlayer.Value)
+        {
+            NotEnoughGold = true;
+        }
+        else
+        {
+            PlayerBoughtSuccess = true;
+
+            dbContext.TournamentBoughtPlayers.Add(new TournamentBoughtPlayer
+            {
+                CompetitionPlayer = SelectedPlayer.Key,
+                TournamentStats = UserTournamentStats,
+            });
+
+            UserTournamentStats.Currency -= SelectedPlayer.Value;
+
+            dbContext.SaveChanges();
+        }
+
+        StateHasChanged();
     }
 }

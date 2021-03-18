@@ -12,7 +12,7 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public virtual Tournament Tournament { get; set; }
         public string ApplicationUserId { get; set; }
         public virtual ApplicationUser ApplicationUser { get; set; }
-        public int Currency { get; set; }
+        public float Currency { get; set; }
         public virtual ICollection<TournamentBoughtPlayer> BoughtPlayers { get; set; }
     }
 }

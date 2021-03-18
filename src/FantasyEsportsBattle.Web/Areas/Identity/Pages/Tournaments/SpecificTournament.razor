@@ -49,17 +49,21 @@
         <nav class="navbar navbar-expand-sm navbar-light navbar-toggleable-sm bg-dark border-bottom box-shadow mb-3">
             <h1 class="tournamentName">@Tournament.Name</h1>
             <h1 style="color: burlywood"> (@Tournament.TournamentState)</h1>
+            <MatButton Icon="@MatIconNames.Monetization_on" Label="@User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament).Currency.ToString("F2")"></MatButton>
             <div class="mat-elevation-z4" style="margin-bottom: 5%;">
                 <MatThemeProvider Theme="@theme1">
-                    @if (IsFormDisabled)
+                    @if (Tournament.TournamentState == Enumerations.TournamentState.NotStarted)
                     {
-                        <MatTooltip Context="TooltipContext" Tooltip="@String.Format("Only {0} can invite players to this Tournament if Status is not started and there are empty slots",Tournament.TournamentHost.UserName)" Position="@MatTooltipPosition.Bottom">
-                            <MatButton RefBack="TooltipContext" Icon="@MatIconNames.Lock" Raised="true" Class="invite-user">Invite User</MatButton>
-                        </MatTooltip>
-                    }
-                    @if (!IsFormDisabled)
-                    {
-                        <MatButton Icon="@MatIconNames.Favorite" Raised="true" Class="invite-user" OnClick="@(() => OpenForm())">Invite User</MatButton>
+                        @if (IsFormDisabled)
+                        {
+                            <MatTooltip Context="TooltipContext" Tooltip="@String.Format("Only {0} can invite players to this Tournament if Status is not started and there are empty slots", Tournament.TournamentHost.UserName)" Position="@MatTooltipPosition.Bottom">
+                                <MatButton RefBack="TooltipContext" Icon="@MatIconNames.Lock" Raised="true" Class="invite-user">Invite User</MatButton>
+                            </MatTooltip>
+                        }
+                        @if (!IsFormDisabled)
+                        {
+                            <MatButton Icon="@MatIconNames.Favorite" Raised="true" Class="invite-user" OnClick="@(() => OpenForm())">Invite User</MatButton>
+                        }
                     }
                 </MatThemeProvider>
             </div>

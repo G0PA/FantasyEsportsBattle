@@ -28,7 +28,7 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
             _dbContext = dbContext;
         }
 
-        public bool OnCreateTournament(List<string> checkedCompetitions, string tournamentName, int tournamentSize,ClaimsPrincipal claims, TournamentType tournamentType,TournamentAlgorithm tournamentAlgorithm)
+        public bool OnCreateTournament(List<string> checkedCompetitions, string tournamentName, int tournamentSize,ClaimsPrincipal claims, TournamentType tournamentType,TournamentAlgorithm tournamentAlgorithm, float currency)
         {
             if (_dbContext.Tournaments.Any(c => c.Name == tournamentName))
             {
@@ -43,7 +43,8 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
                 MaxParticipants = tournamentSize,
                 TournamentHostId = id,
                 TournamentType = tournamentType,
-                TournamentAlgorithm = tournamentAlgorithm
+                TournamentAlgorithm = tournamentAlgorithm,
+                StartingCurrency = currency,
             });
 
             _dbContext.SaveChanges();
@@ -61,8 +62,31 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
                 });
             }
 
+            _dbContext.SaveChanges();
+
+            JoinTournament(_dbContext.Tournaments.FirstOrDefault(t => t.Id == tournamentId), _dbContext.Users.FirstOrDefault(u => u.Id == id));
+
+            return true;
+        }
+
+        public bool JoinTournament(Tournament tournament, ApplicationUser applicationUser)
+        {
+            if (tournament.TournamentState != TournamentState.NotStarted || 
+                (tournament.ApplicationUserTournaments != null &&
+                tournament.MaxParticipants <= tournament.ApplicationUserTournaments.Count))
+            {
+                return false;
+            }
+
             _dbContext.ApplicationUserTournaments.Add(new ApplicationUserTournament
-                {TournamentId = tournamentId, ApplicationUserId = id });
+            { Tournament = tournament, ApplicationUser = applicationUser });
+
+            _dbContext.TournamentStatuses.Add(new TournamentStats
+            {
+                ApplicationUser = applicationUser,
+                Tournament = tournament,
+                Currency = tournament.StartingCurrency
+            });
 
             _dbContext.SaveChanges();
 
@@ -71,22 +95,17 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 
         public bool OnAcceptInvitation(TournamentInvitation tournamentInvitation)
         {
-            if(tournamentInvitation.Tournament.TournamentState != TournamentState.NotStarted || tournamentInvitation.Tournament.MaxParticipants <= tournamentInvitation.Tournament.ApplicationUserTournaments.Count)
+            if (JoinTournament(tournamentInvitation.Tournament, tournamentInvitation.InvitedUser))
             {
-                return false;
+
+                _dbContext.TournamentInvitations.Remove(tournamentInvitation);
+
+                _dbContext.SaveChanges();
+
+                return true;
             }
 
-            tournamentInvitation.Tournament.ApplicationUserTournaments.Add(new ApplicationUserTournament
-            {
-                ApplicationUser = tournamentInvitation.InvitedUser,
-                Tournament = tournamentInvitation.Tournament
-            });
-
-            _dbContext.TournamentInvitations.Remove(tournamentInvitation);
-
-            _dbContext.SaveChanges();
-
-            return true;
+            return false;
         }
     }
 }
