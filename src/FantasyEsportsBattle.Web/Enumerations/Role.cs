@@ -1,6 +1,6 @@
 ﻿namespace FantasyEsportsBattle.Web.Enumerations
 {
-    public enum Roles
+    public enum Role
     {
         TOP = 1,
         JUNGLE = 2,

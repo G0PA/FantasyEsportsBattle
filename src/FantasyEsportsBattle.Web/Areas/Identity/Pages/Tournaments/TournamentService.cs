@@ -107,5 +107,25 @@ namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 
             return false;
         }
+
+        public Dictionary<Team,byte[]> GetTeamImagesForCompetitions(List<Competition> competitions)
+        {
+            var teamsWithImages = new Dictionary<Team, byte[]>();
+
+            var defaultImageData = _dbContext.Images.FirstOrDefault(i => i.Id == Constants.Constants.DefaultImageId).ImageData; 
+
+            foreach(var competition in competitions.ToList())
+            {
+                foreach(var team in competition.Teams.ToList())
+                {
+                    var image = _dbContext.Images.FirstOrDefault(i => i.ImageTitle == team.Name);
+                    var imageData = image == null ? defaultImageData : image.ImageData;
+
+                    teamsWithImages.Add(team, imageData);
+                }
+            }
+
+            return teamsWithImages;
+        }
     }
 }

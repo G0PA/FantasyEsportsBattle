@@ -191,6 +191,31 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                             && !n.InnerHtml.Contains("stats")
                                             && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
 
+                                        if(i > 4) //subs
+                                        {
+                                            var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
+
+                                            var roleParsed = (Role) Enum.Parse(typeof(Role), role);
+
+                                            if (playersWithSameNick.Count() == 1 &&
+                                                playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
+                                            {
+                                                continue;
+                                            }
+
+                                            if(playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
+                                            {
+                                                var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
+
+                                                if(playerToRemove != null)
+                                                {
+                                                    _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                }
+
+                                                continue;
+                                            }
+                                        }
+
                                         var uriString = linkNodes[i].Attributes["href"].Value;
                                         uriString = uriString.Substring(2);
                                         var uri = new Uri("http://gol.gg/" + uriString);
@@ -290,30 +315,27 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 doc.LoadHtml(responseString);
                 var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
 
-                var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
-                    .Any(t => t.Nickname == playerName);
-
                 if (playerName == null)
                 {
                     return;
                 }
 
-                var player = exists
-                    ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
-                    : new CompetitionPlayer();
+                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName && p.Role == (Role)Enum.Parse(typeof(Role), role, true));
 
-                player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
+                if (player == null)
+                {
+                    player = new CompetitionPlayer();
+
+                    _dbContext.CompetitionPlayers.Add(player);
+                }
+
+                player.Role = (Role)Enum.Parse(typeof(Role), role, true);
                 player.Team = team;
                 player.Nickname = playerName;
 
                 Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
 
                 PopulatePlayerStats(doc,player);
-
-                if (!exists)
-                {
-                    _dbContext.CompetitionPlayers.Add(player);
-                }
             }
             catch (Exception ex)
             {

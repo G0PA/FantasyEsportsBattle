@@ -10,7 +10,7 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
     {
         public int Id { get; set; }
         public string Nickname { get; set; }
-        public Roles Role { get; set; }
+        public Role Role { get; set; }
         public int DisplayImage { get; set; }
         public int TeamId { get; set; }
         public virtual Team Team { get; set; }
