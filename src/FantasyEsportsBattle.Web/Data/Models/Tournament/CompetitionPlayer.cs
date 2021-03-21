@@ -33,5 +33,10 @@ namespace FantasyEsportsBattle.Web.Data.Models.Tournament
         public float FirstBloodParticipationPercent { get; set; }
         public float FirstBloodVictimPercent { get; set; }
         public virtual CompetitionPlayerStats CompetitionPlayerStats { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Nickname}";
+        }
     }
 }

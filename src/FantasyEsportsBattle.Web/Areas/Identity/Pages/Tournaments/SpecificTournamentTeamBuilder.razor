@@ -49,7 +49,23 @@
     }
     .pointsVeryHigh{
         font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: coral
+    }
+    .pointsHigh {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
         color: purple
+    }
+    .pointsAboveAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: blue
+    }
+    .pointsAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: green
+    }
+    .pointsBelowAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: gray
     }
 </style>
 
@@ -99,17 +115,52 @@
                     </MatNavItem>
                 </MatNavSubMenuHeader>
                 <MatNavSubMenuList>
-                    @foreach (var player in OrderedPlayers)
+                    @*<MatIconButton Attributes="" Icon="@GetRoleIconSource(Role.TOP)" OnClick="() => AddFilterByRole(Role.TOP)">@GetRoleIconSource(Role.TOP) </MatIconButton>*@
+                    <MatChipSet Filter="true" @bind-SelectedChips="RoleFilterChips">
+                        <MatChip Label="TOP" IsCheckable="true"></MatChip>
+                        <MatChip Label="JUNGLE" IsCheckable="true"></MatChip>
+                        <MatChip Label="MID" IsCheckable="true"></MatChip>
+                        <MatChip Label="ADC" IsCheckable="true"></MatChip>
+                        <MatChip Label="SUPPORT" IsCheckable="true"></MatChip>
+                    </MatChipSet>
+                    @*<img src="@GetRoleIconSource(Role.JUNGLE)" width="35" height="35" />
+        <img src="@GetRoleIconSource(Role.MID)" width="35" height="35" />
+        <img src="@GetRoleIconSource(Role.ADC)" width="35" height="35" />
+        <img src="@GetRoleIconSource(Role.SUPPORT)" width="35" height="35" />*@
+                    <MatAutocompleteList ShowClearButton="true" @bind-Value="@PlayerSearch" Items="@OrderedPlayersFiltered.Keys" Icon="search" TItem="CompetitionPlayer" Label="Filter by Name"></MatAutocompleteList>
+                </MatNavSubMenuList>
+                <MatNavSubMenuList>
+                    @foreach (var player in OrderedPlayersFiltered)
                     {
-                    <h3>
-                        <span class="playerNick">
-                            <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
-                            @player.Key.Nickname
-                            <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
-                            <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
-                            <MatFAB Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatFAB>
-                        </span>
-                    </h3>
+                        <h3>
+                            <span class="playerNick">
+                                <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
+                                @player.Key.Nickname
+                                <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
+                                @if (player.Value >= 90)
+                                {
+                                    <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 75 && player.Value < 90)
+                                {
+                                    <span class="pointsHigh"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 60 && player.Value < 75)
+                                {
+                                    <span class="pointsAboveAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 50 && player.Value < 60)
+                                {
+                                    <span class="pointsAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 1 && player.Value < 50)
+                                {
+                                    <span class="pointsBelowAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+
+                                <MatFAB Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatFAB>
+                            </span>
+                        </h3>
                         <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
                     }
                 </MatNavSubMenuList>
@@ -159,12 +210,48 @@
 
 @code {
 
-    [Parameter]
-    public string TournamentId { get; set; }
+        [Parameter]
+        public string TournamentId { get; set; }
     public Tournament Tournament { get; set; }
     public Dictionary<CompetitionPlayer, float> OrderedPlayers { get; set; }
+    public Dictionary<CompetitionPlayer, float> OrderedPlayersFiltered { get; set; }
     List<ApplicationUser> UsersInTournament { get; set; }
     public bool IsTournamentHost { get; set; }
+    private CompetitionPlayer _playerSearch;
+    public CompetitionPlayer PlayerSearch { get { return _playerSearch; } set
+        {
+            _playerSearch = value;
+
+            if (value != null)
+            {
+                OrderedPlayersFiltered.Clear();
+
+                OrderedPlayersFiltered.Add(value, OrderedPlayers.FirstOrDefault(t => t.Key == value).Value);
+
+                StateHasChanged();
+            }
+            else
+            {
+                ApplyCurrentFilters();
+            }
+        } }
+    private MatChip[] _roleFilterChips;
+    public MatChip[] RoleFilterChips
+    {
+        get { return _roleFilterChips; }
+        set
+        {
+            _roleFilterChips = value;
+
+            RoleFilters.Clear();
+            foreach (var filter in RoleFilterChips.ToList().Where(rfc => rfc.IsSelected))
+            {
+                var role = (Role)Enum.Parse(typeof(Role), filter.Label);
+                RoleFilters.Add(role);
+            }
+            ApplyCurrentFilters();
+        }
+    }
     public bool IsFormDisabled
     {
         get
@@ -184,6 +271,7 @@
     public bool NotEnoughGold { get; set; }
     public bool PlayerBoughtSuccess { get; set; }
     public Dictionary<Team,byte[]> Teams { get; set; }
+    private HashSet<Role> RoleFilters { get; set; }
     MatNavMenu navMenu;
 
     protected override async Task OnInitializedAsync()
@@ -199,9 +287,12 @@
         IsTournamentHost = Tournament.TournamentHost.Id == userId;
         UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
         OrderedPlayers = Tournament.CalculatePointsForAllPlayers();
+        OrderedPlayersFiltered = OrderedPlayers.ToDictionary(op => op.Key, op => op.Value);
         UserTournamentStats = User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament);
 
         Teams = TourneyService.GetTeamImagesForCompetitions(Tournament.TournamentCompetitions.Select(c => c.Competition).ToList());
+
+        RoleFilters = new HashSet<Role>();
     }
 
     private float CalculateProgressBarValue(float playerPoints)
@@ -210,6 +301,32 @@
         var onePercent = (float)(maxPoints) / 100;
 
         return (playerPoints / onePercent) / 100;
+    }
+
+    private object AddFilterByRole(Role role)
+    {
+        if (PlayerSearch != null)
+        {
+            PlayerSearch = null;
+        }
+
+        RoleFilters.Add(role);
+        ApplyCurrentFilters();
+        StateHasChanged();
+
+        return this;
+    }
+
+    private void ApplyCurrentFilters()
+    {
+        if (RoleFilters.Any())
+        {
+            OrderedPlayersFiltered = OrderedPlayers.Where(op => RoleFilters.Contains(op.Key.Role)).ToDictionary(op => op.Key, op => op.Value);
+        }
+        else
+        {
+            OrderedPlayersFiltered = OrderedPlayers.ToDictionary(op => op.Key, op => op.Value);
+        }
     }
 
     private void OnClickBuy(KeyValuePair<CompetitionPlayer, float> player)
