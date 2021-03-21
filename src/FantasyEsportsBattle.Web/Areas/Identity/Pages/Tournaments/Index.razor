@@ -1,6 +1,7 @@
 ﻿@page "/Identity/Tournaments"
 @using FantasyEsportsBattle.Web.Data
 @using FantasyEsportsBattle.Web.Data.Models
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
 @using FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 @inject ApplicationDbContext dbContext
 @inject IJSRuntime JS;
@@ -10,8 +11,9 @@
     .create-tournament {
         background: lightcoral !important;
     }
-    .Tabs{
-    margin-bottom: 3%;
+
+    .Tabs {
+        margin-bottom: 3%;
     }
 </style>
 
@@ -21,11 +23,11 @@
 
         <AvailableTournaments @ref="availableTourneys" />
     </MatTab>
-    <MatTab Class="Tabs" Label="Public Tournaments">
-        Second Content
+    <MatTab Class="Tabs" Label="@String.Format("Public Tournaments ({0})",AvailablePublicTournaments.Count)">
+        <PublicTournaments OnStateChanged="OnStateChanged" AvailableTournaments="AvailablePublicTournaments"/>
     </MatTab>
     <MatTab Class="Tabs" Label="@String.Format("Tournament Invitations ({0})",User.TournamentInvitations.Count)">
-        <TournamentInvitations OnStateChanged="OnStateChanged"/>
+        <TournamentInvitations OnStateChanged="OnStateChanged" />
     </MatTab>
 </MatTabGroup>
 
@@ -34,16 +36,25 @@
 
     AvailableTournaments availableTourneys = new AvailableTournaments();
     public ApplicationUser User { get; set; }
-
+    public List<Tournament> AvailablePublicTournaments { get; set; }
     protected override async Task OnInitializedAsync()
     {
         var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
 
         User = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+
+        AvailablePublicTournaments = dbContext.Tournaments.Where(t => t.TournamentType == Enumerations.TournamentType.Public &&
+    t.ApplicationUserTournaments.Count < t.MaxParticipants &&
+    t.ApplicationUserTournaments.All(aut => aut.ApplicationUser != User)).ToList();
     }
     public void OnStateChanged()
     {
         availableTourneys.UpdatePlayerTournaments();
+
+        AvailablePublicTournaments = dbContext.Tournaments.Where(t => t.TournamentType == Enumerations.TournamentType.Public &&
+    t.ApplicationUserTournaments.Count < t.MaxParticipants &&
+    t.ApplicationUserTournaments.All(aut => aut.ApplicationUser != User)).ToList();
+
         StateHasChanged();
     }
 }

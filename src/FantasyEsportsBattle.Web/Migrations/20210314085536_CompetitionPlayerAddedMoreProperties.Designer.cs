@@ -4,14 +4,16 @@ using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210314085536_CompetitionPlayerAddedMoreProperties")]
+    partial class CompetitionPlayerAddedMoreProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -154,8 +156,8 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<float>("AheadInCSAt15MinPercent")
                         .HasColumnType("real");
 
-                    b.Property<float>("CSDifferenceAt15Min")
-                        .HasColumnType("real");
+                    b.Property<int>("CSDifferenceAt15Min")
+                        .HasColumnType("int");
 
                     b.Property<float>("CSPM")
                         .HasColumnType("real");
@@ -181,8 +183,8 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<float>("GPM")
                         .HasColumnType("real");
 
-                    b.Property<float>("GoldDifferenceAt15Min")
-                        .HasColumnType("real");
+                    b.Property<int>("GoldDifferenceAt15Min")
+                        .HasColumnType("int");
 
                     b.Property<float>("GoldPercent")
                         .HasColumnType("real");
@@ -214,8 +216,8 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<int>("Wins")
                         .HasColumnType("int");
 
-                    b.Property<float>("XPDifferenceAt15Min")
-                        .HasColumnType("real");
+                    b.Property<int>("XPDifferenceAt15Min")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -347,9 +349,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<float>("StartingCurrency")
-                        .HasColumnType("real");
-
                     b.Property<int>("TournamentAlgorithm")
                         .HasColumnType("int");
 
@@ -446,8 +445,8 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<float>("Currency")
-                        .HasColumnType("real");
+                    b.Property<int>("Currency")
+                        .HasColumnType("int");
 
                     b.Property<int>("TournamentId")
                         .HasColumnType("int");

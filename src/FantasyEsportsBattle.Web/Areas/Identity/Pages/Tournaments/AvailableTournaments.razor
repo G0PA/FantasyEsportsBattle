@@ -7,12 +7,14 @@
 
 <h1>My Tournaments:</h1>
 
-<MatTable AllowSelection="true" Striped="true" ShowPaging="false" Items="@PlayerTournaments" class="mat-elevation-z5" SelectionChanged="SelectionChangedEvent">
+<MatTable AllowSelection="true" PageSize="10" Striped="true" ShowPaging="true" Items="@PlayerTournaments" class="mat-elevation-z5" SelectionChanged="SelectionChangedEvent">
     <MatTableHeader>
         <th>Name</th>
         <th>Participants</th>
         <th>Tournament Type</th>
         <th>Algorithm Type</th>
+        <th>Starting Gold</th>
+        <th>Tournament State</th>
         <th>Regions Included In Tournament</th>
         <th>Host</th>
     </MatTableHeader>
@@ -21,6 +23,8 @@
         <td>@String.Format("{0}/{1}", @context.ApplicationUserTournaments == null ? 0 : @context.ApplicationUserTournaments.ToList().Count(), @context.MaxParticipants)</td>
         <td>@context.TournamentType</td>
         <td>@context.TournamentAlgorithm</td>
+        <td>@context.StartingCurrency</td>
+        <td>@context.TournamentState</td>
         <td>@String.Format("({0}) {1}", @context.TournamentCompetitions.Count(), @String.Join(",", @context.TournamentCompetitions.Select(tc => tc.Competition.Name)))</td>
         <td>@context.TournamentHost.UserName</td>
     </MatTableRow>

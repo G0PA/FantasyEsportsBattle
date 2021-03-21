@@ -14,6 +14,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
 
     class GamesOfLegends : Site
     {
@@ -50,9 +51,16 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 foreach (var competition in competitions)
                 {
-                    var teams = GetTeamsForCompetition(competition);
+                    try
+                    {
+                        var teams = GetTeamsForCompetition(competition);
 
-                    GetFinishedMatchesForCompetition(competition, teams);
+                        GetFinishedMatchesForCompetition(competition, teams);
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Logger.Error($"Error parsing teams or finished matches",ex);
+                    }
                 }
 
                 _dbContext.SaveChanges();
@@ -183,6 +191,31 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                             && !n.InnerHtml.Contains("stats")
                                             && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
 
+                                        if(i > 4) //subs
+                                        {
+                                            var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
+
+                                            var roleParsed = (Role) Enum.Parse(typeof(Role), role);
+
+                                            if (playersWithSameNick.Count() == 1 &&
+                                                playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
+                                            {
+                                                continue;
+                                            }
+
+                                            if(playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
+                                            {
+                                                var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
+
+                                                if(playerToRemove != null)
+                                                {
+                                                    _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                }
+
+                                                continue;
+                                            }
+                                        }
+
                                         var uriString = linkNodes[i].Attributes["href"].Value;
                                         uriString = uriString.Substring(2);
                                         var uri = new Uri("http://gol.gg/" + uriString);
@@ -282,39 +315,192 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                 doc.LoadHtml(responseString);
                 var playerName = doc.DocumentNode.SelectSingleNode("//h1")?.InnerText.Replace("&nbsp; ", "").Trim();
 
-                var exists = _dbContext.CompetitionPlayers.Where(t => t.Team.Name == team.Name)
-                    .Any(t => t.Nickname == playerName);
-
                 if (playerName == null)
                 {
                     return;
                 }
 
-                if (team.Players != null && team.Players.Any(p => p.Nickname == playerName))
+                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName && p.Role == (Role)Enum.Parse(typeof(Role), role, true));
+
+                if (player == null)
                 {
-                    return;
+                    player = new CompetitionPlayer();
+
+                    _dbContext.CompetitionPlayers.Add(player);
                 }
 
-                var player = exists
-                    ? _dbContext.CompetitionPlayers.FirstOrDefault(t => t.Nickname == playerName)
-                    : new CompetitionPlayer();
-
-                player.Role = (Roles)Enum.Parse(typeof(Roles), role, true);
+                player.Role = (Role)Enum.Parse(typeof(Role), role, true);
                 player.Team = team;
                 player.Nickname = playerName;
 
                 Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
 
-                if (!exists)
-                {
-                    _dbContext.CompetitionPlayers.Add(player);
-                }
+                PopulatePlayerStats(doc,player);
             }
             catch (Exception ex)
             {
                 Log.Logger.Error($"Error updating player for team {team.Name} {ex.Message}");
             }
         }
+
+        private void PopulatePlayerStats(HtmlDocument doc, CompetitionPlayer player)
+        {
+            var tables = doc.DocumentNode.SelectNodes("//table[contains(@class,'table_list')]");
+
+            if (tables == null)
+            {
+                return;
+            }
+
+            List<Task> tasks = new List<Task>();
+
+            foreach (var table in tables)
+            {
+                try
+                {
+                    if (table.InnerText.Contains("General stats"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Record") && columns[i + 1].InnerText != "-")
+                                {
+                                    var winrateArr = columns[i + 1].InnerText.Replace("W", "").Replace("L", "").Split(" - ");
+                                    var wins = int.Parse(winrateArr[0].Trim());
+                                    var losses = int.Parse(winrateArr[1].Trim());
+                                    player.Wins = wins;
+                                    player.Losses = losses;
+
+                                    if (wins + losses > 0)
+                                    {
+                                        var winrate = (int)(((double)wins / (double)(wins + losses)) * 100);
+                                        player.Winrate = winrate;
+                                    }
+
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("KDA") && columns[i + 1].InnerText != "-")
+                                {
+                                    try
+                                    {
+                                        player.KDA = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    }
+                                    catch
+                                    {
+
+                                    }
+                                }
+                                if (columns[i].InnerText.Contains("CS per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.CSPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold%") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GoldPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Kill Participation") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.KillParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Early game"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Ahead in CS at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    var percentString = columns[i + 1].InnerText.Replace("%", "").Replace(".", ",").Trim().Replace("&nbsp;", "").Trim();
+                                    player.AheadInCSAt15MinPercent = float.Parse(percentString);
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("CS Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.CSDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Gold Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.GoldDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("XP Differential at 15 min") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.XPDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("First Blood Participation") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.FirstBloodParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("First Blood Victim") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.FirstBloodVictimPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Aggression"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Damage Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.DamagePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                                if (columns[i].InnerText.Contains("Damage%") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.DamagePercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                    if (table.InnerText.Contains("Vision"))
+                    {
+                        var columns = table.SelectNodes(".//td");
+                        tasks.Add(Task.Factory.StartNew(() =>
+                        {
+                            for (int i = 0; i < columns.Count - 1; i += 2)
+                            {
+                                if (columns[i].InnerText.Contains("Vision score Per Minute") && columns[i + 1].InnerText != "-")
+                                {
+                                    player.VisionScorePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    continue;
+                                }
+                            }
+                        }));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error($"Error parsing Player column! PlayerName: {player.Nickname}", ex);
+                }
+            }
+
+            Task.WaitAll(tasks.ToArray());
+        }
+                
 
         private List<Competition> GetCompetitions()
         {
@@ -336,44 +522,50 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             foreach (var tournament in responseJson)
             {
-                var competitionName = tournament["trname"].ToString();
-
-                var exists = _dbContext.Competitions.Any(c => c.Name == competitionName);
-
-                var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
-
                 try
                 {
-                    competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
-                }
-                catch (Exception e)
+                    var competitionName = tournament["trname"].ToString();
+
+                    var exists = _dbContext.Competitions.Any(c => c.Name == competitionName);
+
+                    var competition = exists ? _dbContext.Competitions.FirstOrDefault(c => c.Name == competitionName) : new Competition();
+
+                    try
+                    {
+                        competition.Region = Enum.Parse<Region>(tournament["region"].ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
+                        continue;
+                    }
+                    competition.Name = tournament["trname"].ToString();
+
+                    var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
+
+                    var html = Client.GetStringAsync(uri).Result;
+
+                    HtmlDocument doc = new HtmlDocument();
+
+                    doc.LoadHtml(html);
+
+                    var tournamentAlias = doc.DocumentNode
+                        .SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
+                        .SelectSingleNode("//span[contains(@class,'navbar-brand')]").InnerText.Split(' ')[0];
+
+                    var url = $"{_leagueIconLink}{tournamentAlias}";
+
+                    AddImageToDb(url, competition.Name);
+
+                    competitions.Add(competition);
+
+                    if (!exists)
+                    {
+                        _dbContext.Competitions.Add(competition);
+                    }
+                }catch(Exception ex)
                 {
-                    Log.Logger.Error($"New Region! Add '{tournament["region"]}' {e.Message}");
-                    continue;
-                }
-                competition.Name = tournament["trname"].ToString();
-
-                var uri = $"{_tournamentStatsLink}{BuildUrlFromName(competition.Name)}/";
-
-                var html = Client.GetStringAsync(uri).Result;
-
-                HtmlDocument doc = new HtmlDocument();
-
-                doc.LoadHtml(html);
-
-                var tournamentAlias = doc.DocumentNode
-                    .SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
-                    .SelectSingleNode("//span[contains(@class,'navbar-brand')]").InnerText.Split(' ')[0];
-
-                var url = $"{_leagueIconLink}{tournamentAlias}";
-
-                AddImageToDb(url, competition.Name);
-
-                competitions.Add(competition);
-
-                if (!exists)
-                {
-                    _dbContext.Competitions.Add(competition);
+                    Log.Logger.Error($"Error parsing competition", ex);
                 }
             }
 

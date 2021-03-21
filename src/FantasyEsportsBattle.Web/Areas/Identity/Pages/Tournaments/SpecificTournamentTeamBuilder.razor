@@ -1,0 +1,375 @@
+﻿@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject AuthenticationStateProvider AuthProvider
+@using FantasyEsportsBattle.Web.Data.Models
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using FantasyEsportsBattle.Web.Data
+@using FantasyEsportsBattle.Web.Enumerations; 
+@using FantasyEsportsBattle.Web.Extensions
+@inject TournamentService TourneyService
+
+<style>
+    .host {
+        color: red !important;
+        font-family: serif
+    }
+
+    .inTournament {
+        color: darkgreen !important;
+        font-family: serif
+    }
+
+    .invited {
+        color: gray !important;
+        font-family: serif
+    }
+
+    .text {
+        font-family: serif;
+        color: GrayText;
+    }
+
+    .playerList {
+        margin-top: 3%;
+    }
+
+    .buyPlayer {
+        margin-top: 10px;
+        margin-left: 20px;
+    }
+
+    .playerNick{
+        font-family: 'Times New Roman', Times, serif;
+        text-decoration: solid
+    }
+    .teamName {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        text-decoration: solid;
+        color: burlywood
+    }
+    .pointsVeryHigh{
+        font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: coral
+    }
+    .pointsHigh {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: purple
+    }
+    .pointsAboveAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: blue
+    }
+    .pointsAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: green
+    }
+    .pointsBelowAverage {
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        color: gray
+    }
+</style>
+
+<AuthorizeView>
+    <Authorized>
+
+        <MatNavMenu @ref="navMenu">
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader Title="Teams">
+                    <MatNavItem AllowSelection="true">
+                        <MatIcon Icon="group" />&nbsp;Teams(@Teams.Count)
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+                <MatNavSubMenuList>
+                @foreach (var team in Teams)
+                {
+                        var base64 = Convert.ToBase64String(@team.Value);
+                        var imgSrc = String.Format("data:image/gif;base64,{0}", base64);
+                        <div>
+                        <img src="@imgSrc" width="85" height="85 " />
+                        <MatNavSubMenu>
+                            <MatNavSubMenuHeader>
+                                <MatNavItem Title="@team.Key.Name" AllowSelection="false">
+                                    @team.Key.Name (@GetTeamPoints(team.Key).ToString("F2"))
+
+                                </MatNavItem>
+                            </MatNavSubMenuHeader>
+                            <MatNavSubMenuList>
+                                @foreach (var player in team.Key.Players)
+                                {
+                                    <MatNavItem>
+                                        @player.Nickname
+                                        <MatProgressBar Progress="@CalculateProgressBarValue(OrderedPlayers.FirstOrDefault(op => op.Key.Id == player.Id).Value)"></MatProgressBar>
+                                    </MatNavItem>
+                                }
+                            </MatNavSubMenuList>
+                        </MatNavSubMenu>
+                    </div>
+                }
+                </MatNavSubMenuList>
+            </MatNavSubMenu>
+
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader Title="Players">
+                    <MatNavItem AllowSelection="false">
+                        <MatIcon Icon="person" />&nbsp;Players(@OrderedPlayers.Count)
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+                <MatNavSubMenuList>
+                    <MatChipSet Filter="true" @bind-SelectedChips="RoleFilterChips">
+                        <MatChip Label="TOP" IsCheckable="true"></MatChip>
+                        <MatChip Label="JUNGLE" IsCheckable="true"></MatChip>
+                        <MatChip Label="MID" IsCheckable="true"></MatChip>
+                        <MatChip Label="ADC" IsCheckable="true"></MatChip>
+                        <MatChip Label="SUPPORT" IsCheckable="true"></MatChip>
+                    </MatChipSet>
+                    <MatAutocompleteList ShowClearButton="true" @bind-Value="@PlayerSearch" Items="@OrderedPlayersFiltered.Keys" Icon="search" TItem="CompetitionPlayer" Label="Filter by Name"></MatAutocompleteList>
+                </MatNavSubMenuList>
+                <MatNavSubMenuList>
+                    @foreach (var player in OrderedPlayersFiltered)
+                    {
+                        <h3>
+                            <span class="playerNick">
+                                <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
+                                @player.Key.Nickname
+                                <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
+                                @if (player.Value >= 90)
+                                {
+                                    <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 75 && player.Value < 90)
+                                {
+                                    <span class="pointsHigh"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 60 && player.Value < 75)
+                                {
+                                    <span class="pointsAboveAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 50 && player.Value < 60)
+                                {
+                                    <span class="pointsAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+                                @if (player.Value >= 1 && player.Value < 50)
+                                {
+                                    <span class="pointsBelowAverage"> (@player.Value.ToString("F2"))</span>
+                                }
+
+                                <MatFAB Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatFAB>
+                            </span>
+                        </h3>
+                        <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
+                    }
+                </MatNavSubMenuList>
+
+            </MatNavSubMenu>
+
+        </MatNavMenu>
+
+        <MatDialog @bind-IsOpen="@IsBuyPlayerFormOpen">
+            <MatDialogContent>
+                <MatDialogTitle> @SelectedPlayer.Key.Nickname (@SelectedPlayer.Value.ToString("F2")) <img src="@GetRoleIconSource(SelectedPlayer.Key.Role)" width="60" height="60" /></MatDialogTitle>
+                <h5>Winrate: @SelectedPlayer.Key.Winrate %(@SelectedPlayer.Key.Wins - @SelectedPlayer.Key.Losses)</h5>
+                <h5>KDA: @SelectedPlayer.Key.KDA</h5>
+                <h5>CS Per Minute: @SelectedPlayer.Key.CSPM</h5>
+                <h5>Gold Per Minute: @SelectedPlayer.Key.GPM</h5>
+                <h5>Ahead In CS At 15:00 Percent: @SelectedPlayer.Key.AheadInCSAt15MinPercent %</h5>
+                <h5>Kill Participation Percent: @SelectedPlayer.Key.KillParticipationPercent %</h5>
+                <h5>CS Difference At 15:00: @SelectedPlayer.Key.CSDifferenceAt15Min </h5>
+                <h5>Gold Difference At 15:00: @SelectedPlayer.Key.GoldDifferenceAt15Min </h5>
+                <h5>XP Difference At 15:00: @SelectedPlayer.Key.XPDifferenceAt15Min </h5>
+                <h5>Damage Percent: @SelectedPlayer.Key.DamagePercent %</h5>
+                <h5>VisionScorePerMinute: @SelectedPlayer.Key.VisionScorePerMinute</h5>
+                <MatDialogActions>
+                    <MatButton OnClick="@TryBuyPlayer">Buy</MatButton>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })">Exit</MatButton>
+                </MatDialogActions>
+            </MatDialogContent>
+            <MatSnackbar @bind-IsOpen="@PlayerBoughtSuccess">
+                <MatSnackbarContent>Player Bought Successfully! New Gold balance is @UserTournamentStats.Currency.ToString("F2")</MatSnackbarContent>
+                <MatSnackbarActions>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })" Raised="true">OK</MatButton>
+                </MatSnackbarActions>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@NotEnoughGold">
+                <MatSnackbarContent>Player Invite failed. You do not have enough Gold</MatSnackbarContent>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@PlayerAlreadyBought">
+                <MatSnackbarContent>You already have @SelectedPlayer.Key.Nickname in your roster</MatSnackbarContent>
+            </MatSnackbar>
+        </MatDialog>
+
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please login to view Tournament</h2>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+        [Parameter]
+        public string TournamentId { get; set; }
+    public Tournament Tournament { get; set; }
+    public Dictionary<CompetitionPlayer, float> OrderedPlayers { get; set; }
+    public Dictionary<CompetitionPlayer, float> OrderedPlayersFiltered { get; set; }
+    List<ApplicationUser> UsersInTournament { get; set; }
+    public bool IsTournamentHost { get; set; }
+    private CompetitionPlayer _playerSearch;
+    public CompetitionPlayer PlayerSearch { get { return _playerSearch; } set
+        {
+            _playerSearch = value;
+
+            if (value != null)
+            {
+                OrderedPlayersFiltered.Clear();
+
+                OrderedPlayersFiltered.Add(value, OrderedPlayers.FirstOrDefault(t => t.Key == value).Value);
+
+                StateHasChanged();
+            }
+            else
+            {
+                ApplyCurrentFilters();
+            }
+        } }
+    private MatChip[] _roleFilterChips;
+    public MatChip[] RoleFilterChips
+    {
+        get { return _roleFilterChips; }
+        set
+        {
+            _roleFilterChips = value;
+
+            RoleFilters.Clear();
+            foreach (var filter in RoleFilterChips.ToList().Where(rfc => rfc.IsSelected))
+            {
+                var role = (Role)Enum.Parse(typeof(Role), filter.Label);
+                RoleFilters.Add(role);
+            }
+            ApplyCurrentFilters();
+        }
+    }
+    public bool IsFormDisabled
+    {
+        get
+        {
+            return Tournament.ApplicationUserTournaments.Count >= Tournament.MaxParticipants ||
+                Tournament.TournamentHost != User;
+        }
+    }
+    public bool IsPlayerAlreadyInvited { get; set; }
+    public bool IsPlayerAlreadyInTournament { get; set; }
+    public string InvitedUser { get; set; }
+    public KeyValuePair<CompetitionPlayer, float> SelectedPlayer { get; set; } = new KeyValuePair<CompetitionPlayer, float>(new CompetitionPlayer(), 0);
+    public ApplicationUser User { get; set; }
+    public TournamentStats UserTournamentStats { get; set; }
+    public bool IsBuyPlayerFormOpen { get; set; }
+    public bool PlayerAlreadyBought { get; set; }
+    public bool NotEnoughGold { get; set; }
+    public bool PlayerBoughtSuccess { get; set; }
+    public Dictionary<Team,byte[]> Teams { get; set; }
+    private HashSet<Role> RoleFilters { get; set; }
+    MatNavMenu navMenu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+        User = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+
+        var parsedTournamentId = int.Parse(TournamentId);
+
+        Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
+
+        IsTournamentHost = Tournament.TournamentHost.Id == userId;
+        UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+        OrderedPlayers = Tournament.CalculatePointsForAllPlayers();
+        OrderedPlayersFiltered = OrderedPlayers.ToDictionary(op => op.Key, op => op.Value);
+        UserTournamentStats = User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament);
+
+        Teams = TourneyService.GetTeamImagesForCompetitions(Tournament.TournamentCompetitions.Select(c => c.Competition).ToList());
+
+        RoleFilters = new HashSet<Role>();
+    }
+
+    private float CalculateProgressBarValue(float playerPoints)
+    {
+        var maxPoints = TournamentExtensions.GetMaxPoints();
+        var onePercent = (float)(maxPoints) / 100;
+
+        return (playerPoints / onePercent) / 100;
+    }
+
+    private object AddFilterByRole(Role role)
+    {
+        if (PlayerSearch != null)
+        {
+            PlayerSearch = null;
+        }
+
+        RoleFilters.Add(role);
+        ApplyCurrentFilters();
+        StateHasChanged();
+
+        return this;
+    }
+
+    private void ApplyCurrentFilters()
+    {
+        if (RoleFilters.Any())
+        {
+            OrderedPlayersFiltered = OrderedPlayers.Where(op => RoleFilters.Contains(op.Key.Role)).ToDictionary(op => op.Key, op => op.Value);
+        }
+        else
+        {
+            OrderedPlayersFiltered = OrderedPlayers.ToDictionary(op => op.Key, op => op.Value);
+        }
+    }
+
+    private void OnClickBuy(KeyValuePair<CompetitionPlayer, float> player)
+    {
+        SelectedPlayer = player;
+        IsBuyPlayerFormOpen = true;
+    }
+    private void TryBuyPlayer()
+    {
+        if (UserTournamentStats.BoughtPlayers.Any(p => p.CompetitionPlayer == SelectedPlayer.Key))
+        {
+            PlayerAlreadyBought = true;
+        }
+        else if (UserTournamentStats.Currency < SelectedPlayer.Value)
+        {
+            NotEnoughGold = true;
+        }
+        else
+        {
+            PlayerBoughtSuccess = true;
+
+            dbContext.TournamentBoughtPlayers.Add(new TournamentBoughtPlayer
+            {
+                CompetitionPlayer = SelectedPlayer.Key,
+                TournamentStats = UserTournamentStats,
+            });
+
+            UserTournamentStats.Currency -= SelectedPlayer.Value;
+
+            dbContext.SaveChanges();
+        }
+
+        StateHasChanged();
+    }
+
+    private float GetTeamPoints(Team team)
+    {
+        float points = 0;
+        foreach(var player in team.Players)
+        {
+            points += OrderedPlayers.FirstOrDefault(op => op.Key.Team == team).Value;
+        }
+
+        return points;
+    }
+
+    private string GetRoleIconSource(Role role)
+    {
+        return $"Images/LeaguePositionIcons/{role.ToString()}.png";
+    }
+}

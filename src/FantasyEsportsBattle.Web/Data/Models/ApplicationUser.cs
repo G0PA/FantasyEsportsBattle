@@ -13,6 +13,7 @@ namespace FantasyEsportsBattle.Web.Data.Models
         public virtual ICollection<ApplicationUserTournament> ApplicationUserTournaments { get; set; }
         public virtual ICollection<TournamentInvitation> TournamentInvitations { get; set; }
         public virtual ICollection<Tournament.Tournament> HostedTournaments { get; set; }
+        public virtual ICollection<TournamentStats> TournamentStatuses { get; set; }
         public AccountType AccountType { get; set; }
     }
 }

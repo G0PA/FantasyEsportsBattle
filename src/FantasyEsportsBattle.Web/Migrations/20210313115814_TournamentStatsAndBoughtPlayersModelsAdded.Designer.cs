@@ -4,14 +4,16 @@ using FantasyEsportsBattle.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FantasyEsportsBattle.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210313115814_TournamentStatsAndBoughtPlayersModelsAdded")]
+    partial class TournamentStatsAndBoughtPlayersModelsAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,49 +153,10 @@ namespace FantasyEsportsBattle.Web.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<float>("AheadInCSAt15MinPercent")
-                        .HasColumnType("real");
-
-                    b.Property<float>("CSDifferenceAt15Min")
-                        .HasColumnType("real");
-
-                    b.Property<float>("CSPM")
-                        .HasColumnType("real");
-
                     b.Property<int>("CompetitionPlayerStatsId")
                         .HasColumnType("int");
 
-                    b.Property<float>("DamagePerMinute")
-                        .HasColumnType("real");
-
-                    b.Property<float>("DamagePercent")
-                        .HasColumnType("real");
-
                     b.Property<int>("DisplayImage")
-                        .HasColumnType("int");
-
-                    b.Property<float>("FirstBloodParticipationPercent")
-                        .HasColumnType("real");
-
-                    b.Property<float>("FirstBloodVictimPercent")
-                        .HasColumnType("real");
-
-                    b.Property<float>("GPM")
-                        .HasColumnType("real");
-
-                    b.Property<float>("GoldDifferenceAt15Min")
-                        .HasColumnType("real");
-
-                    b.Property<float>("GoldPercent")
-                        .HasColumnType("real");
-
-                    b.Property<float>("KDA")
-                        .HasColumnType("real");
-
-                    b.Property<float>("KillParticipationPercent")
-                        .HasColumnType("real");
-
-                    b.Property<int>("Losses")
                         .HasColumnType("int");
 
                     b.Property<string>("Nickname")
@@ -204,18 +167,6 @@ namespace FantasyEsportsBattle.Web.Migrations
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int");
-
-                    b.Property<float>("VisionScorePerMinute")
-                        .HasColumnType("real");
-
-                    b.Property<float>("Winrate")
-                        .HasColumnType("real");
-
-                    b.Property<int>("Wins")
-                        .HasColumnType("int");
-
-                    b.Property<float>("XPDifferenceAt15Min")
-                        .HasColumnType("real");
 
                     b.HasKey("Id");
 
@@ -347,9 +298,6 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<float>("StartingCurrency")
-                        .HasColumnType("real");
-
                     b.Property<int>("TournamentAlgorithm")
                         .HasColumnType("int");
 
@@ -446,8 +394,8 @@ namespace FantasyEsportsBattle.Web.Migrations
                     b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<float>("Currency")
-                        .HasColumnType("real");
+                    b.Property<int>("Currency")
+                        .HasColumnType("int");
 
                     b.Property<int>("TournamentId")
                         .HasColumnType("int");

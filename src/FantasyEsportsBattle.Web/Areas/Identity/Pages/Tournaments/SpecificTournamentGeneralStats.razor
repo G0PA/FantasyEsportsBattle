@@ -1,0 +1,115 @@
+﻿@inject ApplicationDbContext dbContext
+@inject IJSRuntime JS;
+@inject AuthenticationStateProvider AuthProvider
+@using FantasyEsportsBattle.Web.Data.Models
+@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using FantasyEsportsBattle.Web.Data
+
+<style>
+    .host {
+        color: red !important;
+        font-family: serif
+    }
+
+    .inTournament {
+        color: darkgreen !important;
+        font-family: serif
+    }
+
+    .invited {
+        color: gray !important;
+        font-family: serif
+    }
+
+    .text {
+        font-family: serif;
+        color: GrayText;
+    }
+
+    .playerList {
+        margin-top: 3%;
+    }
+</style>
+
+<AuthorizeView>
+    <Authorized>
+        <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(true))">Expand All</MatButton>
+        <MatButton OnClick="@(() => navMenu.ToggleAllSubMenus(false))">Collapse All</MatButton>
+
+        <MatNavMenu @ref="navMenu">
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader Title="@PlayersInTournamentTitle">
+                    <MatNavItem AllowSelection="false">
+                        <MatIcon Icon="assignment_ind" />&nbsp;@PlayersInTournamentTitle
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+
+                <MatNavSubMenuList>
+                    @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser == Tournament.TournamentHost))
+                    {
+                        <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="host">  (HOST)</h4></MatNavItem>
+                    }
+                    @foreach (var user in Tournament.ApplicationUserTournaments.Where(aut => aut.ApplicationUser != Tournament.TournamentHost))
+                    {
+                        <MatNavItem AllowSelection="false"><h4>@user.ApplicationUser.UserName   </h4><h4 class="inTournament">  (IN TOURNAMENT)</h4></MatNavItem>
+                    }
+
+                    <h2 class="playerList"></h2>
+                    @if (Tournament.TournamentInvitations != null)
+                    {
+                        @foreach (var user in Tournament.TournamentInvitations)
+                        {
+                            <MatNavItem Class="playerList" AllowSelection="false"><h4 class="text">@user.InvitedUser.UserName    </h4><h4 class="invited">  (PENDING INVITE)</h4></MatNavItem>
+                        }
+                    }
+                </MatNavSubMenuList>
+
+            </MatNavSubMenu>
+        </MatNavMenu>
+    </Authorized>
+    <NotAuthorized>
+        <h2>Please login to view Tournament</h2>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+    [Parameter]
+    public string TournamentId { get; set; }
+    public Tournament Tournament { get; set; }
+    public bool IsTournamentHost { get; set; }
+    public List<ApplicationUser> UsersInTournament { get; set; }
+    public string PlayersInTournamentTitle
+    {
+        get
+        {
+            return String.Format("Players In Tournament {0}/{1}", UsersInTournament.Count, Tournament.MaxParticipants);
+        }
+    }
+    public bool IsFormDisabled
+    {
+        get
+        {
+            return Tournament.ApplicationUserTournaments.Count >= Tournament.MaxParticipants ||
+                Tournament.TournamentHost != User;
+        }
+    }
+    public ApplicationUser User { get; set; }
+    public Dictionary<CompetitionPlayer, float> PlayersInTournament { get; set; }
+    MatNavMenu navMenu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
+
+        User = dbContext.Users.FirstOrDefault(u => u.Id == userId);
+
+        var parsedTournamentId = int.Parse(TournamentId);
+
+        Tournament = dbContext.Tournaments.FirstOrDefault(t => t.Id == parsedTournamentId);
+
+        UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+
+        IsTournamentHost = Tournament.TournamentHost.Id == userId;
+    }
+}
