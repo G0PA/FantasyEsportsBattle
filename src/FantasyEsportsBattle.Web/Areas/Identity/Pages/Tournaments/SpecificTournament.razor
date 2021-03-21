@@ -49,7 +49,10 @@
         <nav class="navbar navbar-expand-sm navbar-light navbar-toggleable-sm bg-dark border-bottom box-shadow mb-3">
             <h1 class="tournamentName">@Tournament.Name</h1>
             <h1 style="color: burlywood"> (@Tournament.TournamentState)</h1>
-            <MatButton Icon="@MatIconNames.Monetization_on" Label="@User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament).Currency.ToString("F2")"></MatButton>
+            @if (IsPartOfTournament)
+            {
+                <MatButton Icon="@MatIconNames.Monetization_on" Label="@User.TournamentStatuses.FirstOrDefault(ts => ts.Tournament == Tournament).Currency.ToString("F2")"></MatButton>
+            }
             <div class="mat-elevation-z4" style="margin-bottom: 5%;">
                 <MatThemeProvider Theme="@theme1">
                     @if (Tournament.TournamentState == Enumerations.TournamentState.NotStarted)
@@ -79,7 +82,10 @@
         @if (!IsPartOfTournament)
         {
             <h2 style="color: darkred">You are not currently a part of this tournament</h2>
-        }
+            <SpecificTournamentGeneralStats TournamentId="@TournamentId"/>
+        }                                
+        @if (IsPartOfTournament)
+        {
         <MatTabGroup @bind-ActiveIndex="@tabIndex">
             <MatTab Class="Tabs" Label="General Stats">
                 <SpecificTournamentGeneralStats TournamentId="@TournamentId" />
@@ -88,9 +94,9 @@
                 <SpecificTournamentTeamBuilder TournamentId="@TournamentId"/>
             </MatTab>
             <MatTab Class="Tabs" Label="Participants & Ladder">
-
             </MatTab>
         </MatTabGroup>
+        }
 
         <MatDialog @bind-IsOpen="@IsInviteFormOpen">
             <MatDialogTitle>Invite Player To Tournament </MatDialogTitle>
@@ -129,7 +135,7 @@
             </MatSnackbar>
         </MatDialog>
 
-    </Authorized>
+        </Authorized>
     <NotAuthorized>
         <h2>Please login to view Tournament</h2>
     </NotAuthorized>
