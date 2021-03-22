@@ -1,13 +1,14 @@
 ﻿using FantasyEsportsBattle.Web.Data;
 using System;
 using System.Net.Http;
+using FantasyEsportsBattle.Web.Services;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
     public abstract class Site
     {
         protected HttpClient Client;
-        public abstract void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval);
+        public abstract void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval, CompetitionsService competitionsService);
 
         public Site()
         {

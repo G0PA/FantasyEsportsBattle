@@ -4,6 +4,7 @@ using System.Linq;
 using FantasyEsportsBattle.InfoTracker.Sites;
 using FantasyEsportsBattle.Web.Constants;
 using FantasyEsportsBattle.Web.Data;
+using FantasyEsportsBattle.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -13,6 +14,7 @@ namespace FantasyEsportsBattle.InfoTracker
     class Program
     {
         private static readonly TimeSpan _workerBreakTime = TimeSpan.FromMinutes(30);
+        private static readonly CompetitionsService competitionsService = new CompetitionsService();
         static void Main(string[] args)
         {
             var builder = new ConfigurationBuilder();
@@ -48,14 +50,14 @@ namespace FantasyEsportsBattle.InfoTracker
                 context.SaveChanges();
             }
 
-            StartTrackers(context);
+            StartTrackers(context, competitionsService);
         }
 
-        private static void StartTrackers(ApplicationDbContext dbContext)
+        private static void StartTrackers(ApplicationDbContext dbContext, CompetitionsService competitionsService)
         {
             GamesOfLegends gol = new GamesOfLegends();
 
-            gol.ParseWebsiteOnInterval(dbContext, _workerBreakTime);
+            gol.ParseWebsiteOnInterval(dbContext, _workerBreakTime, competitionsService);
         }
 
         static void BuildConfig(IConfigurationBuilder builder)

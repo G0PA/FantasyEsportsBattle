@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Web.Enumerations;
+using FantasyEsportsBattle.Web.Services;
 using Newtonsoft.Json.Linq;
 using Serilog;
 
@@ -34,7 +35,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private readonly string _tournamentMatchListLink =
             "https://gol.gg/tournament/tournament-matchlist/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
-        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
+        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval, CompetitionsService competitionsService)
         {
             _dbContext = dbContext;
 
@@ -47,6 +48,19 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     Thread.Sleep(TimeSpan.FromSeconds(10));
                     continue;
                 }
+
+                var expiredCompetitions = new List<Competition>();
+                var competitionsInDb = _dbContext.Competitions.ToList();
+
+                foreach (var competition in competitionsInDb)
+                {
+                    if (!competitions.Contains(competition))
+                    {
+                        expiredCompetitions.Add(competition);
+                    }
+                }
+
+                competitionsService.HandleExpiredCompetitions(expiredCompetitions);
 
                 _dbContext.SaveChanges();
 
