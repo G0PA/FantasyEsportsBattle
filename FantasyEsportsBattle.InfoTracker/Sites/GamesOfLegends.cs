@@ -1,7 +1,9 @@
-﻿using System.Net.Http;
+﻿using System.Globalization;
+using System.Net.Http;
 using System.Threading;
 using FantasyEsportsBattle.Host.Data.Models;
 using FantasyEsportsBattle.Web.Enumerations;
+using FantasyEsportsBattle.Web.Services;
 using Newtonsoft.Json.Linq;
 using Serilog;
 
@@ -33,7 +35,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private readonly string _tournamentMatchListLink =
             "https://gol.gg/tournament/tournament-matchlist/";
         private Regex scriptResultsRegex = new Regex(@"data : \[([\d,]+)]", RegexOptions.Compiled | RegexOptions.Multiline);
-        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval)
+        public override void ParseWebsiteOnInterval(ApplicationDbContext dbContext, TimeSpan interval, CompetitionsService competitionsService)
         {
             _dbContext = dbContext;
 
@@ -47,6 +49,19 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     continue;
                 }
 
+                var expiredCompetitions = new List<Competition>();
+                var competitionsInDb = _dbContext.Competitions.ToList();
+
+                foreach (var competition in competitionsInDb)
+                {
+                    if (!competitions.Contains(competition))
+                    {
+                        expiredCompetitions.Add(competition);
+                    }
+                }
+
+                competitionsService.HandleExpiredCompetitions(expiredCompetitions);
+
                 _dbContext.SaveChanges();
 
                 foreach (var competition in competitions)
@@ -57,9 +72,9 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         GetFinishedMatchesForCompetition(competition, teams);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        Log.Logger.Error($"Error parsing teams or finished matches",ex);
+                        Log.Logger.Error($"Error parsing teams or finished matches", ex);
                     }
                 }
 
@@ -191,11 +206,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                             && !n.InnerHtml.Contains("stats")
                                             && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
 
-                                        if(i > 4) //subs
+                                        if (i > 4) //subs
                                         {
                                             var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
 
-                                            var roleParsed = (Role) Enum.Parse(typeof(Role), role);
+                                            var roleParsed = (Role)Enum.Parse(typeof(Role), role);
 
                                             if (playersWithSameNick.Count() == 1 &&
                                                 playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
@@ -203,11 +218,11 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                                 continue;
                                             }
 
-                                            if(playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
+                                            if (playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
                                             {
                                                 var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
 
-                                                if(playerToRemove != null)
+                                                if (playerToRemove != null)
                                                 {
                                                     _dbContext.CompetitionPlayers.Remove(playerToRemove);
                                                 }
@@ -335,7 +350,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                 Console.WriteLine($"Parsing player {player.Nickname} for team {player.Team.Name} in role {player.Role}");
 
-                PopulatePlayerStats(doc,player);
+                PopulatePlayerStats(doc, player);
             }
             catch (Exception ex)
             {
@@ -385,31 +400,31 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                 {
                                     try
                                     {
-                                        player.KDA = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                        player.KDA = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     }
                                     catch
                                     {
-
+                                        Log.Logger.Error($"Could not parse KDA for player {player.Nickname}, KDA {columns[i + 1].InnerText}");
                                     }
                                 }
                                 if (columns[i].InnerText.Contains("CS per Minute") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.CSPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.CSPM = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("Gold Per Minute") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.GPM = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.GPM = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("Gold%") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.GoldPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    player.GoldPercent = float.Parse(columns[i + 1].InnerText.Replace("%", "").Trim(), CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("Kill Participation") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.KillParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    player.KillParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace("%", "").Trim(), CultureInfo.InvariantCulture);
                                     continue;
                                 }
                             }
@@ -424,33 +439,33 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                             {
                                 if (columns[i].InnerText.Contains("Ahead in CS at 15 min") && columns[i + 1].InnerText != "-")
                                 {
-                                    var percentString = columns[i + 1].InnerText.Replace("%", "").Replace(".", ",").Trim().Replace("&nbsp;", "").Trim();
-                                    player.AheadInCSAt15MinPercent = float.Parse(percentString);
+                                    var percentString = columns[i + 1].InnerText.Replace("%", "").Trim().Replace("&nbsp;", "").Trim();
+                                    player.AheadInCSAt15MinPercent = float.Parse(percentString, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("CS Differential at 15 min") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.CSDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.CSDifferenceAt15Min = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("Gold Differential at 15 min") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.GoldDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.GoldDifferenceAt15Min = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("XP Differential at 15 min") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.XPDifferenceAt15Min = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.XPDifferenceAt15Min = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("First Blood Participation") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.FirstBloodParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    player.FirstBloodParticipationPercent = float.Parse(columns[i + 1].InnerText.Replace("%", "").Trim(), CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("First Blood Victim") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.FirstBloodVictimPercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    player.FirstBloodVictimPercent = float.Parse(columns[i + 1].InnerText.Replace("%", "").Trim(), CultureInfo.InvariantCulture);
                                     continue;
                                 }
                             }
@@ -465,12 +480,12 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                             {
                                 if (columns[i].InnerText.Contains("Damage Per Minute") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.DamagePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.DamagePerMinute = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                                 if (columns[i].InnerText.Contains("Damage%") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.DamagePercent = float.Parse(columns[i + 1].InnerText.Replace(".", ",").Replace("%", "").Trim());
+                                    player.DamagePercent = float.Parse(columns[i + 1].InnerText.Replace("%", "").Trim(), CultureInfo.InvariantCulture);
                                     continue;
                                 }
                             }
@@ -485,7 +500,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                             {
                                 if (columns[i].InnerText.Contains("Vision score Per Minute") && columns[i + 1].InnerText != "-")
                                 {
-                                    player.VisionScorePerMinute = float.Parse(columns[i + 1].InnerText.Replace(".", ","));
+                                    player.VisionScorePerMinute = float.Parse(columns[i + 1].InnerText, CultureInfo.InvariantCulture);
                                     continue;
                                 }
                             }
@@ -500,7 +515,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             Task.WaitAll(tasks.ToArray());
         }
-                
+
 
         private List<Competition> GetCompetitions()
         {
@@ -563,7 +578,8 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     {
                         _dbContext.Competitions.Add(competition);
                     }
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Log.Logger.Error($"Error parsing competition", ex);
                 }
