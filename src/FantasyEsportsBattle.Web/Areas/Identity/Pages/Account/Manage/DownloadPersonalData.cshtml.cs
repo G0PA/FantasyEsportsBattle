@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FantasyEsportsBattle.Web.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using FantasyEsportsBattle.Models;
 
 namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Account.Manage
 {

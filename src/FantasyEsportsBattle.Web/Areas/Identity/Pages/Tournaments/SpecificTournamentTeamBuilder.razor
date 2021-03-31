@@ -1,10 +1,10 @@
 ﻿@inject ApplicationDbContext dbContext
 @inject IJSRuntime JS;
 @inject AuthenticationStateProvider AuthProvider
-@using FantasyEsportsBattle.Web.Data.Models
-@using FantasyEsportsBattle.Web.Data.Models.Tournament
+@using FantasyEsportsBattle.Models;
+@using FantasyEsportsBattle.Models.Tournament;
 @using FantasyEsportsBattle.Web.Data
-@using FantasyEsportsBattle.Web.Enumerations; 
+@using FantasyEsportsBattle.Enumerations; 
 @using FantasyEsportsBattle.Web.Extensions
 @inject TournamentService TourneyService
 
@@ -92,187 +92,177 @@
         margin: 0px;
     }
     span.player {
-        float: left;
-        width: 19%;
+        width: 20%;
         display: inline-block;
     }
 </style>
 
 <AuthorizeView>
     <Authorized>
+        <span>
+            @foreach (var role in Enum.GetValues(typeof(Role)))
+            {
+                var roleParsed = (Role)role;
+                <span class="player">
+                    @if (UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                    {
+                        var player = UserTournamentStats.BoughtPlayers.FirstOrDefault(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve);
 
-        <MatDrawerContainer Style="height: 100vh;" DrawerWidth="75%">
-            <MatDrawer @bind-Opened="@RosterOpen" Mode="@MatDrawerMode.Dismissible">
-                @foreach (var role in Enum.GetValues(typeof(Role)))
-                {
-                    var roleParsed = (Role)role;
+                        <MatCard class="demo-mat-card">
+                            <MatCardContent>
+                                <div class="demo-mat-card-content">
+                                    <MatHeadline6 class="demo-mat-card-clean-margin">
+                                        @roleParsed
+                                        <img src="@GetRoleIconSource(roleParsed)" height="40px" width="40px" />
+                                    </MatHeadline6>
+                                    <MatSubtitle2 class="demo-mat-card-clean-margin">
+                                        <MatHeadline6 class="demo-mat-card-clean-margin">
+                                            @String.Format("{0}({1})", player.CompetitionPlayer.Nickname, BoughtCompetitionPlayers.FirstOrDefault(bp => bp.Key == player.CompetitionPlayer).Value.ToString("F2"))
+                                        </MatHeadline6>
+                                    </MatSubtitle2>
+                                </div>
+                            </MatCardContent>
 
-                    <span class="player">
-                        @if (UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                        </MatCard>
+                    }
+                    @if (!UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                    {
+                        <MatCard class="demo-mat-card-disabled">
+                            <MatCardContent>
+                                <div class="demo-mat-card-content">
+                                    <MatHeadline6 class="demo-mat-card-clean-margin">
+                                        @roleParsed
+                                        <img src="@GetRoleIconSource(roleParsed)" height="40px" width="40px" />
+                                    </MatHeadline6>
+                                    <MatSubtitle2 class="demo-mat-card-clean-margin">
+                                        <MatHeadline6>@String.Format("You currently have no {0} player", roleParsed)</MatHeadline6>
+                                    </MatSubtitle2>
+                                </div>
+                            </MatCardContent>
+
+                        </MatCard>
+                    }
+                    @if (UserTournamentStats.BoughtPlayers != null)
+                    {
+                        @foreach (var reserve in UserTournamentStats.BoughtPlayers.Where(bp => bp.IsReserve && bp.CompetitionPlayer.Role == roleParsed))
                         {
-                            var player = UserTournamentStats.BoughtPlayers.FirstOrDefault(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve);
-
-                            <MatCard class="demo-mat-card">
+                            <MatCard class="demo-mat-card-reserve">
                                 <MatCardContent>
                                     <div class="demo-mat-card-content">
                                         <MatHeadline6 class="demo-mat-card-clean-margin">
-                                            @roleParsed
-                                            <img src="@GetRoleIconSource(roleParsed)" height="40px" width="40px" />
+                                            @String.Format("{0} (RESERVE)", reserve.CompetitionPlayer.Role)
+                                            <img src="@GetRoleIconSource(reserve.CompetitionPlayer.Role)" height="40px" width="40px" />
                                         </MatHeadline6>
                                         <MatSubtitle2 class="demo-mat-card-clean-margin">
                                             <MatHeadline6 class="demo-mat-card-clean-margin">
-                                                @String.Format("{0}({1})", player.CompetitionPlayer.Nickname, BoughtCompetitionPlayers.FirstOrDefault(bp => bp.Key == player.CompetitionPlayer).Value.ToString("F2"))
+                                                @String.Format("{0}({1})", reserve.CompetitionPlayer.Nickname, BoughtCompetitionPlayers.FirstOrDefault(bp => bp.Key == reserve.CompetitionPlayer).Value.ToString("F2"))
                                             </MatHeadline6>
                                         </MatSubtitle2>
                                     </div>
                                 </MatCardContent>
-
                             </MatCard>
                         }
-                        @if (!UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                    }
+                </span>
+            }
+        </span>
+        <div></div>
+            <MatNavMenu Style="margin-top: 10%">
+                <MatNavSubMenu>
+                    <MatNavSubMenuHeader Title="Players">
+                        <MatNavItem AllowSelection="false">
+                            <MatIcon Icon="person" />&nbsp;Players(@OrderedPlayers.Count)
+                        </MatNavItem>
+                    </MatNavSubMenuHeader>
+                    <MatNavSubMenuList>
+                        <MatChipSet Filter="true" @bind-SelectedChips="RoleFilterChips">
+                            <MatChip Label="TOP" IsCheckable="true"></MatChip>
+                            <MatChip Label="JUNGLE" IsCheckable="true"></MatChip>
+                            <MatChip Label="MID" IsCheckable="true"></MatChip>
+                            <MatChip Label="ADC" IsCheckable="true"></MatChip>
+                            <MatChip Label="SUPPORT" IsCheckable="true"></MatChip>
+                            <MatChip Style="background-color: green" Label="SHOW ONLY ELIGIBLE" IsCheckable="true"></MatChip>
+                        </MatChipSet>
+                        <MatAutocompleteList ShowClearButton="true" @bind-Value="@PlayerSearch" Items="@OrderedPlayers.Keys" Icon="search" TItem="CompetitionPlayer" Label="Filter by Name"></MatAutocompleteList>
+                    </MatNavSubMenuList>
+                    <MatNavSubMenuList>
+                        @foreach (var player in OrderedPlayersFiltered)
                         {
-                            <MatCard class="demo-mat-card-disabled">
-                                <MatCardContent>
-                                    <div class="demo-mat-card-content">
-                                        <MatHeadline6 class="demo-mat-card-clean-margin">
-                                            @roleParsed
-                                            <img src="@GetRoleIconSource(roleParsed)" height="40px" width="40px" />
-                                        </MatHeadline6>
-                                        <MatSubtitle2 class="demo-mat-card-clean-margin">
-                                            <MatHeadline6>@String.Format("You currently have no {0} player", roleParsed)</MatHeadline6>
-                                        </MatSubtitle2>
-                                    </div>
-                                </MatCardContent>
+                            <h3>
+                                <span class="playerNick">
+                                    <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
+                                    @player.Key.Nickname
+                                    <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
+                                    @if (player.Value >= 90)
+                                    {
+                                        <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
+                                    }
+                                    @if (player.Value >= 75 && player.Value < 90)
+                                    {
+                                        <span class="pointsHigh"> (@player.Value.ToString("F2"))</span>
+                                    }
+                                    @if (player.Value >= 60 && player.Value < 75)
+                                    {
+                                        <span class="pointsAboveAverage"> (@player.Value.ToString("F2"))</span>
+                                    }
+                                    @if (player.Value >= 50 && player.Value < 60)
+                                    {
+                                        <span class="pointsAverage"> (@player.Value.ToString("F2"))</span>
+                                    }
+                                    @if (player.Value >= 1 && player.Value < 50)
+                                    {
+                                        <span class="pointsBelowAverage"> (@player.Value.ToString("F2"))</span>
+                                    }
 
-                            </MatCard>
+                                    <MatThemeProvider Theme="@buyPlayerTheme">
+                                        <MatButton Raised="true" Disabled="@DisabledPlayers.Contains(player.Key)" Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatButton>
+                                        </MatThemeProvider>
+                                </span>
+                            </h3>
+                            <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
                         }
-                        @if (UserTournamentStats.BoughtPlayers != null)
-                        {
-                            @foreach (var reserve in UserTournamentStats.BoughtPlayers.Where(bp => bp.IsReserve && bp.CompetitionPlayer.Role == roleParsed))
-                            {
-                                <MatCard class="demo-mat-card-reserve">
-                                    <MatCardContent>
-                                        <div class="demo-mat-card-content">
-                                            <MatHeadline6 class="demo-mat-card-clean-margin">
-                                                @String.Format("{0} (RESERVE)", reserve.CompetitionPlayer.Role)
-                                                <img src="@GetRoleIconSource(reserve.CompetitionPlayer.Role)" height="40px" width="40px" />
-                                            </MatHeadline6>
-                                            <MatSubtitle2 class="demo-mat-card-clean-margin">
-                                                <MatHeadline6 class="demo-mat-card-clean-margin">
-                                                    @String.Format("{0}({1})", reserve.CompetitionPlayer.Nickname, BoughtCompetitionPlayers.FirstOrDefault(bp => bp.Key == reserve.CompetitionPlayer).Value.ToString("F2"))
-                                                </MatHeadline6>
-                                            </MatSubtitle2>
-                                        </div>
-                                    </MatCardContent>
-                                </MatCard>
-                            }
-                        }
-                    </span>
-                }
-            </MatDrawer>
-            <MatDrawerContent>
-                <div>
-                    <MatFAB Icon="@GetIconForDrawer()" Label="@GetLabelForDrawer()"OnClick="@((e) => ClickRoster())">
-                        
-                    </MatFAB>
-                </div>
-                <div style="margin-top: 5%">
-                    <MatNavMenu>
-                        <MatNavSubMenu>
-                            <MatNavSubMenuHeader Title="Players">
-                                <MatNavItem AllowSelection="false">
-                                    <MatIcon Icon="person" />&nbsp;Players(@OrderedPlayers.Count)
-                                </MatNavItem>
-                            </MatNavSubMenuHeader>
-                            <MatNavSubMenuList>
-                                <MatChipSet Filter="true" @bind-SelectedChips="RoleFilterChips">
-                                    <MatChip Label="TOP" IsCheckable="true"></MatChip>
-                                    <MatChip Label="JUNGLE" IsCheckable="true"></MatChip>
-                                    <MatChip Label="MID" IsCheckable="true"></MatChip>
-                                    <MatChip Label="ADC" IsCheckable="true"></MatChip>
-                                    <MatChip Label="SUPPORT" IsCheckable="true"></MatChip>
-                                </MatChipSet>
-                                <MatAutocompleteList ShowClearButton="true" @bind-Value="@PlayerSearch" Items="@OrderedPlayers.Keys" Icon="search" TItem="CompetitionPlayer" Label="Filter by Name"></MatAutocompleteList>
-                            </MatNavSubMenuList>
-                            <MatNavSubMenuList>
-                                @foreach (var player in OrderedPlayersFiltered)
-                                {
-                                    <h3>
-                                        <span class="playerNick">
-                                            <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
-                                            @player.Key.Nickname
-                                            <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
-                                            @if (player.Value >= 90)
-                                            {
-                                                <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
-                                            }
-                                            @if (player.Value >= 75 && player.Value < 90)
-                                            {
-                                                <span class="pointsHigh"> (@player.Value.ToString("F2"))</span>
-                                            }
-                                            @if (player.Value >= 60 && player.Value < 75)
-                                            {
-                                                <span class="pointsAboveAverage"> (@player.Value.ToString("F2"))</span>
-                                            }
-                                            @if (player.Value >= 50 && player.Value < 60)
-                                            {
-                                                <span class="pointsAverage"> (@player.Value.ToString("F2"))</span>
-                                            }
-                                            @if (player.Value >= 1 && player.Value < 50)
-                                            {
-                                                <span class="pointsBelowAverage"> (@player.Value.ToString("F2"))</span>
-                                            }
+                    </MatNavSubMenuList>
 
-                                            <MatFAB Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatFAB>
-                                        </span>
-                                    </h3>
-                                    <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
-                                }
-                            </MatNavSubMenuList>
+                </MatNavSubMenu>
+            </MatNavMenu>
 
-                        </MatNavSubMenu>
-                    </MatNavMenu>
-                    </div>
-            </MatDrawerContent>
-        </MatDrawerContainer>
 
-            
 
-            <MatDialog @bind-IsOpen="@IsBuyPlayerFormOpen">
-                <MatDialogContent>
-                    <MatDialogTitle> @SelectedPlayer.Key.Nickname (@SelectedPlayer.Value.ToString("F2")) <img src="@GetRoleIconSource(SelectedPlayer.Key.Role)" width="60" height="60" /></MatDialogTitle>
-                    <h5>Winrate: @SelectedPlayer.Key.Winrate %(@SelectedPlayer.Key.Wins - @SelectedPlayer.Key.Losses)</h5>
-                    <h5>KDA: @SelectedPlayer.Key.KDA</h5>
-                    <h5>CS Per Minute: @SelectedPlayer.Key.CSPM</h5>
-                    <h5>Gold Per Minute: @SelectedPlayer.Key.GPM</h5>
-                    <h5>Ahead In CS At 15:00 Percent: @SelectedPlayer.Key.AheadInCSAt15MinPercent %</h5>
-                    <h5>Kill Participation Percent: @SelectedPlayer.Key.KillParticipationPercent %</h5>
-                    <h5>CS Difference At 15:00: @SelectedPlayer.Key.CSDifferenceAt15Min </h5>
-                    <h5>Gold Difference At 15:00: @SelectedPlayer.Key.GoldDifferenceAt15Min </h5>
-                    <h5>XP Difference At 15:00: @SelectedPlayer.Key.XPDifferenceAt15Min </h5>
-                    <h5>Damage Percent: @SelectedPlayer.Key.DamagePercent %</h5>
-                    <h5>VisionScorePerMinute: @SelectedPlayer.Key.VisionScorePerMinute</h5>
-                    <MatDialogActions>
-                        <MatButton OnClick="@TryBuyPlayer">Buy</MatButton>
-                        <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })">Exit</MatButton>
-                    </MatDialogActions>
-                </MatDialogContent>
-                <MatSnackbar @bind-IsOpen="@PlayerBoughtSuccess">
-                    <MatSnackbarContent>Player Bought Successfully! New Gold balance is @UserTournamentStats.Currency.ToString("F2")</MatSnackbarContent>
-                    <MatSnackbarActions>
-                        <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })" Raised="true">OK</MatButton>
-                    </MatSnackbarActions>
-                </MatSnackbar>
-                <MatSnackbar @bind-IsOpen="@NotEnoughGold">
-                    <MatSnackbarContent>Player Invite failed. You do not have enough Gold</MatSnackbarContent>
-                </MatSnackbar>
-                <MatSnackbar @bind-IsOpen="@TooManyPlayersFromTeam">
-                    <MatSnackbarContent>@String.Format("Player Invite failed. You already have the max number of allowed Players from {0} in your roster", SelectedPlayer.Key.Team == null ? "Unknown" : SelectedPlayer.Key.Team.Name) </MatSnackbarContent>
-                </MatSnackbar>
-                <MatSnackbar @bind-IsOpen="@PlayerAlreadyBought">
-                    <MatSnackbarContent>You already have @SelectedPlayer.Key.Nickname in your roster</MatSnackbarContent>
-                </MatSnackbar>
-            </MatDialog>
+        <MatDialog @bind-IsOpen="@IsBuyPlayerFormOpen">
+            <MatDialogContent>
+                <MatDialogTitle> @SelectedPlayer.Key.Nickname (@SelectedPlayer.Value.ToString("F2")) <img src="@GetRoleIconSource(SelectedPlayer.Key.Role)" width="60" height="60" /></MatDialogTitle>
+                <h5>Winrate: @SelectedPlayer.Key.Winrate %(@SelectedPlayer.Key.Wins - @SelectedPlayer.Key.Losses)</h5>
+                <h5>KDA: @SelectedPlayer.Key.KDA</h5>
+                <h5>CS Per Minute: @SelectedPlayer.Key.CSPM</h5>
+                <h5>Gold Per Minute: @SelectedPlayer.Key.GPM</h5>
+                <h5>Ahead In CS At 15:00 Percent: @SelectedPlayer.Key.AheadInCSAt15MinPercent %</h5>
+                <h5>Kill Participation Percent: @SelectedPlayer.Key.KillParticipationPercent %</h5>
+                <h5>CS Difference At 15:00: @SelectedPlayer.Key.CSDifferenceAt15Min </h5>
+                <h5>Gold Difference At 15:00: @SelectedPlayer.Key.GoldDifferenceAt15Min </h5>
+                <h5>XP Difference At 15:00: @SelectedPlayer.Key.XPDifferenceAt15Min </h5>
+                <h5>Damage Percent: @SelectedPlayer.Key.DamagePercent %</h5>
+                <h5>VisionScorePerMinute: @SelectedPlayer.Key.VisionScorePerMinute</h5>
+                <MatDialogActions>
+                    <MatButton OnClick="@TryBuyPlayer">Buy</MatButton>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })">Exit</MatButton>
+                </MatDialogActions>
+            </MatDialogContent>
+            <MatSnackbar @bind-IsOpen="@PlayerBoughtSuccess">
+                <MatSnackbarContent>Player Bought Successfully! New Gold balance is @UserTournamentStats.Currency.ToString("F2")</MatSnackbarContent>
+                <MatSnackbarActions>
+                    <MatButton OnClick="@(e => { IsBuyPlayerFormOpen = false; })" Raised="true">OK</MatButton>
+                </MatSnackbarActions>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@NotEnoughGold">
+                <MatSnackbarContent>Player Invite failed. You do not have enough Gold</MatSnackbarContent>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@TooManyPlayersFromTeam">
+                <MatSnackbarContent>@String.Format("Player Invite failed. You already have the max number of allowed Players from {0} in your roster", SelectedPlayer.Key.Team == null ? "Unknown" : SelectedPlayer.Key.Team.Name) </MatSnackbarContent>
+            </MatSnackbar>
+            <MatSnackbar @bind-IsOpen="@PlayerAlreadyBought">
+                <MatSnackbarContent>You already have @SelectedPlayer.Key.Nickname in your roster</MatSnackbarContent>
+            </MatSnackbar>
+        </MatDialog>
 
     </Authorized>
     <NotAuthorized>
@@ -289,6 +279,7 @@
     public Dictionary<CompetitionPlayer, float> OrderedPlayersFiltered { get; set; }
     List<ApplicationUser> UsersInTournament { get; set; }
     public bool IsTournamentHost { get; set; }
+    public bool ShowEligibleOnly { get; set; }
     private CompetitionPlayer _playerSearch;
     public CompetitionPlayer PlayerSearch { get { return _playerSearch; } set
         {
@@ -318,9 +309,22 @@
             RoleFilters.Clear();
             foreach (var filter in RoleFilterChips.ToList().Where(rfc => rfc.IsSelected))
             {
+                if(filter.Label.Contains("ELIGIBLE"))
+                {
+                    ShowEligibleOnly = true;
+                    continue;
+                }
+
                 var role = (Role)Enum.Parse(typeof(Role), filter.Label);
+
                 RoleFilters.Add(role);
             }
+
+            if(RoleFilterChips.All(rfc => !rfc.Label.Contains("ELIGIBLE")))
+            {
+                ShowEligibleOnly = false;
+            }
+
             ApplyCurrentFilters();
         }
     }
@@ -332,7 +336,7 @@
                 Tournament.TournamentHost != User;
         }
     }
-    public bool RosterOpen { get; set; }
+    public bool RosterOpen { get; set; } = true;
     public bool IsPlayerAlreadyInvited { get; set; }
     public bool IsPlayerAlreadyInTournament { get; set; }
     public string InvitedUser { get; set; }
@@ -347,7 +351,13 @@
     public Dictionary<Team,byte[]> Teams { get; set; }
     private HashSet<Role> RoleFilters { get; set; }
     private Dictionary<CompetitionPlayer,float> BoughtCompetitionPlayers { get; set; } = new Dictionary<CompetitionPlayer, float>();
+    private HashSet<CompetitionPlayer> DisabledPlayers { get; set; } = new HashSet<CompetitionPlayer>();
     MatNavMenu navMenu;
+    MatTheme buyPlayerTheme = new MatTheme()
+    {
+        Primary = "green",
+        Secondary = "orange"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -370,8 +380,21 @@
         RoleFilters = new HashSet<Role>();
 
         UpdateBoughtPlayers();
+        UpdateDisabledPlayers();
     }
 
+    private void UpdateDisabledPlayers()
+    {
+        DisabledPlayers.Clear();
+
+        foreach(var player in OrderedPlayers)
+        {
+            if (BuyPlayerDisabled(player))
+            {
+                DisabledPlayers.Add(player.Key);
+            }
+        }
+    }
     private float CalculateProgressBarValue(float playerPoints)
     {
         var maxPoints = TournamentExtensions.GetMaxPoints();
@@ -403,6 +426,11 @@
         else
         {
             OrderedPlayersFiltered = OrderedPlayers.ToDictionary(op => op.Key, op => op.Value);
+        }
+
+        if (ShowEligibleOnly)
+        {
+            OrderedPlayersFiltered = OrderedPlayersFiltered.Where(opf => !DisabledPlayers.Contains(opf.Key)).ToDictionary(op => op.Key, op => op.Value);
         }
     }
 
@@ -443,12 +471,32 @@
 
             UpdateBoughtPlayers();
 
+            UpdateDisabledPlayers();
+
             dbContext.SaveChanges();
 
 
         }
 
         StateHasChanged();
+    }
+
+    private bool BuyPlayerDisabled(KeyValuePair<CompetitionPlayer,float> player)
+    {
+        if (UserTournamentStats.BoughtPlayers.Any(p => p.CompetitionPlayer == player.Key))
+        {
+            return true;
+        }
+        else if (UserTournamentStats.Currency < player.Value)
+        {
+            return true;
+        }
+        else if (UserTournamentStats.BoughtPlayers.Where(bp => bp.CompetitionPlayer.Team == player.Key.Team).Count() >= 2)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void UpdateBoughtPlayers()

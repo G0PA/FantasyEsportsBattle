@@ -6,14 +6,14 @@ using System.Net.Mime;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using FantasyEsportsBattle.Web.Data;
-using FantasyEsportsBattle.Web.Data.Models;
-using FantasyEsportsBattle.Web.Data.Models.Tournament;
-using FantasyEsportsBattle.Web.Enumerations;
+using FantasyEsportsBattle.Models.Tournament;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using FantasyEsportsBattle.Enumerations;
+using FantasyEsportsBattle.Models;
 
 namespace FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments
 {

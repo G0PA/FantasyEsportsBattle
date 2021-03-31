@@ -1,6 +1,6 @@
 ﻿using System;
 using FantasyEsportsBattle.Web.Data;
-using FantasyEsportsBattle.Web.Data.Models;
+using FantasyEsportsBattle.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;

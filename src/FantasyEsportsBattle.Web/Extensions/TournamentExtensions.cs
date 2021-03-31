@@ -1,5 +1,5 @@
-﻿using FantasyEsportsBattle.Web.Data.Models.Tournament;
-using FantasyEsportsBattle.Web.Enumerations;
+﻿using FantasyEsportsBattle.Enumerations;
+using FantasyEsportsBattle.Models.Tournament;
 using System;
 using System.Collections.Generic;
 using System.Linq;

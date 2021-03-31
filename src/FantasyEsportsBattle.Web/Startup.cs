@@ -17,8 +17,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FantasyEsportsBattle.Web.Areas.Identity.Pages.Tournaments;
-using FantasyEsportsBattle.Web.Data.Models;
+using FantasyEsportsBattle.Models;
 using MatBlazor;
+using FantasyEsportsBattle.Caches;
+using FantasyEsportsBattle.Models.Tournament;
+using FantasyEsportsBattle.Web.Services;
 
 namespace FantasyEsportsBattle.Web
 {
@@ -52,6 +55,10 @@ namespace FantasyEsportsBattle.Web
             services.AddDatabaseDeveloperPageExceptionFilter();
 
             services.AddScoped<TournamentService>();
+
+            services.RegisterCompetitionsCache();
+
+            services.AddHostedService<CompetitionsChangeService>();
 
             services.AddMatBlazor();
 

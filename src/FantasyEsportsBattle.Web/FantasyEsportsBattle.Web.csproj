@@ -22,4 +22,10 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FantasyEsportsBattle.Caches\FantasyEsportsBattle.Caches.csproj" />
+    <ProjectReference Include="..\FantasyEsportsBattle.Enumerations\FantasyEsportsBattle.Enumerations.csproj" />
+    <ProjectReference Include="..\FantasyEsportsBattle.Models\FantasyEsportsBattle.Models.csproj" />
+  </ItemGroup>
+
 </Project>
