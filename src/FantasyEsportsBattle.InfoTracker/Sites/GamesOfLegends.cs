@@ -196,48 +196,52 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                             if (table.InnerText.Contains("Player"))
                             {
-                                var linkNodes = table.SelectNodes(".//a").Where(n => !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList();
+                                var linkNodes = table.SelectNodes(".//a").Where(n => !n.InnerText.ToLowerInvariant().Contains("winrate"))?.ToList();
 
-                                for (int i = 0; i < linkNodes.Count; i++)
+                                if (linkNodes != null)
                                 {
-                                    if (linkNodes[i].OuterHtml.Contains("player-stats"))
+
+                                    for (int i = 0; i < linkNodes.Count; i++)
                                     {
-                                        var role = table.SelectNodes(".//tr//td").Where(n =>
-                                            n.Attributes.Count == 0
-                                            && !n.InnerText.Contains("&nbsp")
-                                            && !n.InnerHtml.Contains("stats")
-                                            && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
-
-                                        if (i > 4) //subs
+                                        if (linkNodes[i].OuterHtml.Contains("player-stats"))
                                         {
-                                            var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
+                                            var role = table.SelectNodes(".//tr//td").Where(n =>
+                                                n.Attributes.Count == 0
+                                                && !n.InnerText.Contains("&nbsp")
+                                                && !n.InnerHtml.Contains("stats")
+                                                && !n.InnerText.ToLowerInvariant().Contains("winrate")).ToList()[i].InnerText;
 
-                                            var roleParsed = (Role)Enum.Parse(typeof(Role), role);
-
-                                            if (playersWithSameNick.Count() == 1 &&
-                                                playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
+                                            if (i > 4) //subs
                                             {
-                                                continue;
-                                            }
+                                                var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
 
-                                            if (playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
-                                            {
-                                                var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
+                                                var roleParsed = (Role)Enum.Parse(typeof(Role), role);
 
-                                                if (playerToRemove != null)
+                                                if (playersWithSameNick.Count() == 1 &&
+                                                    playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
                                                 {
-                                                    _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                    continue;
                                                 }
 
-                                                continue;
+                                                if (playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
+                                                {
+                                                    var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
+
+                                                    if (playerToRemove != null)
+                                                    {
+                                                        _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                    }
+
+                                                    continue;
+                                                }
                                             }
+
+                                            var uriString = linkNodes[i].Attributes["href"].Value;
+                                            uriString = uriString.Substring(2);
+                                            var uri = new Uri("http://gol.gg/" + uriString);
+
+                                            UpdatePlayerForTeam(team, uri, role);
                                         }
-
-                                        var uriString = linkNodes[i].Attributes["href"].Value;
-                                        uriString = uriString.Substring(2);
-                                        var uri = new Uri("http://gol.gg/" + uriString);
-
-                                        UpdatePlayerForTeam(team, uri, role);
                                     }
                                 }
                             }

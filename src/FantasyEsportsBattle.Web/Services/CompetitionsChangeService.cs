@@ -17,7 +17,7 @@ namespace FantasyEsportsBattle.Web.Services
         {
             _competitionsCache = competitionsCache;
 
-            _competitionsCache.OnItemAdded = HandleRemovedCompetition;
+            _competitionsCache.OnItemRemoved = HandleRemovedCompetition;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

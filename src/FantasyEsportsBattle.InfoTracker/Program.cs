@@ -62,7 +62,6 @@ namespace FantasyEsportsBattle.InfoTracker
         }
 
 
-
         static IHostBuilder CreateHostBuilder(string[] args) =>
            Host.CreateDefaultBuilder(args)
                .ConfigureServices((_, services) =>
