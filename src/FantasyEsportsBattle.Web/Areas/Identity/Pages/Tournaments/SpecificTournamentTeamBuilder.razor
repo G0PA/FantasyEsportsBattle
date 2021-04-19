@@ -104,7 +104,7 @@
             {
                 var roleParsed = (Role)role;
                 <span class="player">
-                    @if (UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                    @if (UserTournamentStats.BoughtPlayers != null && UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
                     {
                         var player = UserTournamentStats.BoughtPlayers.FirstOrDefault(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve);
 
@@ -125,7 +125,7 @@
 
                         </MatCard>
                     }
-                    @if (!UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
+                    @if (UserTournamentStats.BoughtPlayers != null && !UserTournamentStats.BoughtPlayers.Any(bp => bp.CompetitionPlayer.Role == roleParsed && !bp.IsReserve))
                     {
                         <MatCard class="demo-mat-card-disabled">
                             <MatCardContent>
@@ -193,6 +193,7 @@
                                     <img src="@GetRoleIconSource(player.Key.Role)" width="35" height="35" />
                                     @player.Key.Nickname
                                     <span class="teamName">@String.Format("[{0}]", player.Key.Team.Name)</span>
+                                    [@player.Key.Team.Competition.Name]
                                     @if (player.Value >= 90)
                                     {
                                         <span class="pointsVeryHigh"> (@player.Value.ToString("F2"))</span>
@@ -213,10 +214,9 @@
                                     {
                                         <span class="pointsBelowAverage"> (@player.Value.ToString("F2"))</span>
                                     }
-
                                     <MatThemeProvider Theme="@buyPlayerTheme">
                                         <MatButton Raised="true" Disabled="@DisabledPlayers.Contains(player.Key)" Class="buyPlayer" Icon="@MatIconNames.Payment" OnClick="@(_ => OnClickBuy(player))" Label="BUY"></MatButton>
-                                        </MatThemeProvider>
+                                    </MatThemeProvider>
                                 </span>
                             </h3>
                             <MatProgressBar Progress="@CalculateProgressBarValue(player.Value)"></MatProgressBar>
@@ -359,6 +359,8 @@
         Secondary = "orange"
     };
 
+    [Parameter] public Action UpdateTournamentState { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var userId = AuthProvider.GetAuthenticationStateAsync().Result.User.Claims?.FirstOrDefault()?.Value;
@@ -438,6 +440,10 @@
     {
         SelectedPlayer = player;
         IsBuyPlayerFormOpen = true;
+        PlayerBoughtSuccess = false;
+        NotEnoughGold = false;
+        TooManyPlayersFromTeam = false;
+        PlayerAlreadyBought = false;
     }
     private void TryBuyPlayer()
     {
@@ -448,7 +454,7 @@
         else if (UserTournamentStats.Currency < SelectedPlayer.Value)
         {
             NotEnoughGold = true;
-        }else if(UserTournamentStats.BoughtPlayers.Where(bp => bp.CompetitionPlayer.Team == SelectedPlayer.Key.Team).Count() >= 2)
+        } else if (UserTournamentStats.BoughtPlayers.Where(bp => bp.CompetitionPlayer.Team == SelectedPlayer.Key.Team).Count() >= 2)
         {
             TooManyPlayersFromTeam = true;
         }
@@ -474,16 +480,16 @@
             UpdateDisabledPlayers();
 
             dbContext.SaveChanges();
-
-
         }
 
         StateHasChanged();
+
+        UpdateTournamentState.Invoke();
     }
 
     private bool BuyPlayerDisabled(KeyValuePair<CompetitionPlayer,float> player)
     {
-        if (UserTournamentStats.BoughtPlayers.Any(p => p.CompetitionPlayer == player.Key))
+        if (UserTournamentStats.BoughtPlayers != null && UserTournamentStats.BoughtPlayers.Any(p => p.CompetitionPlayer == player.Key))
         {
             return true;
         }
@@ -491,7 +497,7 @@
         {
             return true;
         }
-        else if (UserTournamentStats.BoughtPlayers.Where(bp => bp.CompetitionPlayer.Team == player.Key.Team).Count() >= 2)
+        else if (UserTournamentStats.BoughtPlayers != null && UserTournamentStats.BoughtPlayers.Where(bp => bp.CompetitionPlayer.Team == player.Key.Team).Count() >= 2)
         {
             return true;
         }

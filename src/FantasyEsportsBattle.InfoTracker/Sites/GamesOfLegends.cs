@@ -41,13 +41,16 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             while (true)
             {
-                var competitions = GetCompetitions(out bool hasHadErrors);
+                var competitions = AddCompetitions(out bool hasHadErrors);
 
                 if (competitions == null)
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(10));
                     continue;
                 }
+
+                _dbContext.SaveChanges();
+
                 if (!hasHadErrors)
                 {
                     var expiredCompetitions = new List<Competition>();
@@ -55,24 +58,27 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                     foreach (var competition in competitionsInDb)
                     {
-                        if (!competitions.All(c => c.Name != competition.Name))
+                        if (competitions.All(c => c.Name != competition.Name))
                         {
                             expiredCompetitions.Add(competition);
                         }
                     }
 
-                    competitionsCache.BulkRemoveItem(expiredCompetitions);
-                }
+                    if (expiredCompetitions.Any())
+                    {
+                        competitionsCache.BulkRemoveItem(expiredCompetitions);
 
-                _dbContext.SaveChanges();
+                        _dbContext.SaveChanges();
+                    }
+                }
 
                 foreach (var competition in competitions)
                 {
                     try
                     {
-                        var teams = GetTeamsForCompetition(competition);
+                        AddTeamsForCompetition(competition);
 
-                        GetFinishedMatchesForCompetition(competition, teams);
+                        AddFinishedEventsForCompetition(competition);
                     }
                     catch (Exception ex)
                     {
@@ -108,7 +114,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             }
         }
 
-        private List<Team> GetTeamsForCompetition(Competition competition)
+        private List<Team> AddTeamsForCompetition(Competition competition)
         {
             Console.WriteLine($"Parsing competition {competition.Name}");
             List<Team> teams = new List<Team>();
@@ -138,9 +144,14 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                         var teamName = doc.DocumentNode.SelectSingleNode("//h1").InnerText;
 
-                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Name == teamName);
+                        var teamFromDb = _dbContext.Teams.FirstOrDefault(t => t.Name == teamName && t.CompetitionId == competition.Id);
 
                         Team team = teamFromDb == null ? new Team() : teamFromDb;
+
+                        if (teamFromDb == null)
+                        {
+                            _dbContext.Teams.Add(team);
+                        }
 
                         team.Name = teamName;
 
@@ -196,7 +207,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                             if (table.InnerText.Contains("Player"))
                             {
-                                var linkNodes = table.SelectNodes(".//a").Where(n => !n.InnerText.ToLowerInvariant().Contains("winrate"))?.ToList();
+                                var linkNodes = table.SelectNodes(".//a")?.Where(n => n.InnerText != null && !n.InnerText.ToLowerInvariant().Contains("winrate"))?.ToList();
 
                                 if (linkNodes != null)
                                 {
@@ -213,26 +224,29 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
                                             if (i > 4) //subs
                                             {
-                                                var playersWithSameNick = _dbContext.Teams.FirstOrDefault(t => t == team).Players.Where(p => p.Nickname == linkNodes[i].InnerHtml);
+                                                var playersWithSameNick = team.Players?.Where(p => p.Nickname == linkNodes[i].InnerHtml);
 
-                                                var roleParsed = (Role)Enum.Parse(typeof(Role), role);
-
-                                                if (playersWithSameNick.Count() == 1 &&
-                                                    playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
+                                                if (playersWithSameNick != null)
                                                 {
-                                                    continue;
-                                                }
+                                                    var roleParsed = (Role)Enum.Parse(typeof(Role), role);
 
-                                                if (playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
-                                                {
-                                                    var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
-
-                                                    if (playerToRemove != null)
+                                                    if (playersWithSameNick.Count() == 1 &&
+                                                        playersWithSameNick.First().Role != roleParsed) //player in main roster already exists with different role so we ignore the sub
                                                     {
-                                                        _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                        continue;
                                                     }
 
-                                                    continue;
+                                                    if (playersWithSameNick.Count() > 1) //2 occurances of same player with different role exists, delete the sub
+                                                    {
+                                                        var playerToRemove = playersWithSameNick.FirstOrDefault(p => p.Role == roleParsed);
+
+                                                        if (playerToRemove != null)
+                                                        {
+                                                            _dbContext.CompetitionPlayers.Remove(playerToRemove);
+                                                        }
+
+                                                        continue;
+                                                    }
                                                 }
                                             }
 
@@ -241,15 +255,12 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                             var uri = new Uri("http://gol.gg/" + uriString);
 
                                             UpdatePlayerForTeam(team, uri, role);
+
+                                            _dbContext.SaveChanges();
                                         }
                                     }
                                 }
                             }
-                        }
-
-                        if (teamFromDb == null)
-                        {
-                            _dbContext.Teams.Add(team);
                         }
 
                         teams.Add(team);
@@ -269,7 +280,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
             return teams;
         }
 
-        private void GetFinishedMatchesForCompetition(Competition competition, List<Team> teams)
+        private void AddFinishedEventsForCompetition(Competition competition)
         {
             var tournamentMatches =
                 Client.GetStringAsync(
@@ -285,38 +296,51 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
 
             for (int i = 0; i < columns.Count; i++)
             {
-                var currentGame = columns[i].SelectNodes(".//td");
-
-                var blueSideTeam = currentGame[1].InnerHtml;
-                var redSideTeam = currentGame[3].InnerHtml;
-
-                var score = currentGame[2].InnerHtml.Split("-");
-                var blueSideTeamScore = int.Parse(score[0].Trim());
-                var redSideTeamScore = int.Parse(score[1].Trim());
-                var date = DateTime.Parse(currentGame[6].InnerHtml);
-
-                var finishedEventFromDb = _dbContext
-                    .FinishedEvents
-                    .FirstOrDefault(t => t.HomeTeam.Name == blueSideTeam
-                                    && t.AwayTeam.Name == redSideTeam
-                                    && t.GameDate == date);
-
-                if (finishedEventFromDb == null)
+                try
                 {
-                    var homeTeam = teams.FirstOrDefault(t => t.Name == blueSideTeam);
-                    var awayTeam = teams.FirstOrDefault(t => t.Name == redSideTeam);
+                    var currentGame = columns[i].SelectNodes(".//td");
 
-                    var finishedEvent = new FinishedEvent
+                    var blueSideTeam = currentGame[1].InnerHtml;
+                    var redSideTeam = currentGame[3].InnerHtml;
+
+                    var blueSideTeamFromDb = _dbContext.Teams.FirstOrDefault(team => team.Competition == competition && team.Name == blueSideTeam);
+                    var redSideTeamFromDb = _dbContext.Teams.FirstOrDefault(team => team.Competition == competition && team.Name == redSideTeam);
+
+                    var score = currentGame[2].InnerHtml.Split("-");
+                    var blueSideTeamScore = int.Parse(score[0].Trim());
+                    var redSideTeamScore = int.Parse(score[1].Trim());
+                    var date = DateTime.Parse(currentGame[6].InnerHtml);
+
+                    FinishedEvent finishedEvent = null;
+
+                    if (blueSideTeamFromDb != null && redSideTeamFromDb != null)
                     {
-                        HomeTeam = homeTeam,
-                        AwayTeam = awayTeam,
-                        Competition = competition,
-                        GameDate = date,
-                        Score1 = blueSideTeamScore,
-                        Score2 = redSideTeamScore,
-                    };
+                        finishedEvent = _dbContext
+                           .FinishedEvents
+                           .FirstOrDefault(t => t.HomeTeamId == blueSideTeamFromDb.Id
+                                           && t.AwayTeamId == redSideTeamFromDb.Id
+                                           && t.GameDate == date);
 
-                    _dbContext.FinishedEvents.Add(finishedEvent);
+
+                        if (finishedEvent == null)
+                        {
+                            finishedEvent = new FinishedEvent
+                            {
+                                HomeTeamId = blueSideTeamFromDb.Id,
+                                AwayTeamId = redSideTeamFromDb.Id,
+                                Competition = competition,
+                                GameDate = date,
+                                Score1 = blueSideTeamScore,
+                                Score2 = redSideTeamScore,
+                            };
+
+                            _dbContext.FinishedEvents.Add(finishedEvent);
+                        }
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Log.Logger.Error($"Error parsing Finished Event from Competition {competition.Name}({competition.Id})");
                 }
             }
         }
@@ -341,7 +365,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     return;
                 }
 
-                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName && p.Role == (Role)Enum.Parse(typeof(Role), role, true));
+                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName);
 
                 if (player == null)
                 {
@@ -523,7 +547,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         }
 
 
-        private List<Competition> GetCompetitions(out bool hasHadErrors)
+        private List<Competition> AddCompetitions(out bool hasHadErrors)
         {
             hasHadErrors = false;
 
@@ -573,12 +597,15 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     doc.LoadHtml(html);
 
                     var tournamentAlias = doc.DocumentNode
-                        .SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
-                        .SelectSingleNode("//span[contains(@class,'navbar-brand')]").InnerText.Split(' ')[0];
+                        ?.SelectSingleNode("//div[contains(@class,'row mt-3 fond-main-cadre')]")
+                        ?.SelectSingleNode("//span[contains(@class,'navbar-brand')]")?.InnerText.Split(' ')[0];
 
-                    var url = $"{_leagueIconLink}{tournamentAlias}";
+                    if (tournamentAlias != null)
+                    {
+                        var url = $"{_leagueIconLink}{tournamentAlias}";
 
-                    AddImageToDb(url, competition.Name);
+                        AddImageToDb(url, competition.Name);
+                    }
 
                     competitions.Add(competition);
 

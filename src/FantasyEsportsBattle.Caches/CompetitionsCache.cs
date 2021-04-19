@@ -84,6 +84,10 @@ namespace FantasyEsportsBattle.Caches
 
                 foreach(var item in items)
                 {
+                    conn.Execute($"DELETE FROM FinishedEvents WHERE CompetitionId = {item.Id}");
+
+                    conn.Execute($"DELETE FROM Teams WHERE CompetitionId = {item.Id}");
+
                     conn.Execute($"DELETE FROM Competitions WHERE Id = {item.Id}");
                 }
 

@@ -91,7 +91,7 @@
                 <SpecificTournamentGeneralStats TournamentId="@TournamentId" />
             </MatTab>
             <MatTab Class="Tabs" Label="Team Builder">
-                <SpecificTournamentTeamBuilder TournamentId="@TournamentId"/>
+                <SpecificTournamentTeamBuilder UpdateTournamentState="@UpdateState" TournamentId="@TournamentId"/>
             </MatTab>
             <MatTab Class="Tabs" Label="Participants & Ladder">
             </MatTab>
@@ -202,6 +202,11 @@
 
         IsTournamentHost = Tournament.TournamentHost.Id == userId;
         UsersInTournament = Tournament.ApplicationUserTournaments.Select(t => t.ApplicationUser).ToList();
+    }
+
+    public void UpdateState()
+    {
+        StateHasChanged();
     }
 
     public async Task TryInvitePlayer()
