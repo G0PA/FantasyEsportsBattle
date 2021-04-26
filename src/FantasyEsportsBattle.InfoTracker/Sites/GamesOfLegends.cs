@@ -17,7 +17,7 @@ using FantasyEsportsBattle.Caches;
 
 namespace FantasyEsportsBattle.InfoTracker.Sites
 {
-   
+
     class GamesOfLegends : Site
     {
         private readonly string _allTournamentsLink = "https://gol.gg/tournament/ajax.trlist.php";
@@ -77,7 +77,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     try
                     {
                         AddTeamsForCompetition(competition);
-
                         AddFinishedEventsForCompetition(competition);
                     }
                     catch (Exception ex)
@@ -117,6 +116,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
         private List<Team> AddTeamsForCompetition(Competition competition)
         {
             Console.WriteLine($"Parsing competition {competition.Name}");
+
             List<Team> teams = new List<Team>();
 
             try
@@ -254,7 +254,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                                             uriString = uriString.Substring(2);
                                             var uri = new Uri("http://gol.gg/" + uriString);
 
-                                            UpdatePlayerForTeam(team, uri, role);
+                                            UpdatePlayerForTeam(team, uri, role, competition);
 
                                             _dbContext.SaveChanges();
                                         }
@@ -264,7 +264,6 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                         }
 
                         teams.Add(team);
-
                     }
                     catch (Exception ex)
                     {
@@ -338,14 +337,14 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                         }
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Log.Logger.Error($"Error parsing Finished Event from Competition {competition.Name}({competition.Id})");
                 }
             }
         }
 
-        private void UpdatePlayerForTeam(Team team, Uri uri, string role)
+        private void UpdatePlayerForTeam(Team team, Uri uri, string role, Competition competition)
         {
             try
             {
@@ -365,7 +364,7 @@ namespace FantasyEsportsBattle.InfoTracker.Sites
                     return;
                 }
 
-                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName);
+                var player = _dbContext.CompetitionPlayers.FirstOrDefault(p => p.Nickname == playerName && p.Team.CompetitionId == competition.Id);
 
                 if (player == null)
                 {
